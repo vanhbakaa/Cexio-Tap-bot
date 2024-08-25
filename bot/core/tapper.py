@@ -379,7 +379,7 @@ class Tapper:
                 # print(card)
                 if card['upgradeId'] in self.card1:
                     card_lvl = self.card1[card['upgradeId']]['lvl']
-                    if len(card['levels']) >= card_lvl:
+                    if len(card['levels']) <= card_lvl:
                         continue
                     if len(card['levels']) > 0:
                         potential = card['levels'][card_lvl][0]/card['levels'][card_lvl][2]
