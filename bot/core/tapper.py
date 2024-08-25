@@ -186,7 +186,10 @@ class Tapper:
         if response.status == 200:
             json_response = await response.json()
             data_response = json_response['data']["BTC"]
-            self.btc_balance = int(data_response['balance_BTC']) / 100000
+            try:
+                self.btc_balance = int(data_response['balance_BTC']) / 100000
+            except:
+                return None
             logger.info(
                 f"Claimed <cyan>{int(data_response['claimedAmount']) / 100000}</cyan> BTC | BTC Balance: <cyan>{int(data_response['balance_BTC']) / 100000}</cyan>")
         else:
@@ -516,7 +519,7 @@ class Tapper:
                 raise error
 
             except Exception as error:
-                traceback.print_exc()
+                #traceback.print_exc()
                 logger.error(f"{self.session_name} | Unknown error: {error}")
                 await asyncio.sleep(delay=randint(60, 120))
 
