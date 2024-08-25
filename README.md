@@ -1,6 +1,6 @@
 ## Recommendation before use
 
-# 🔥🔥 Use PYTHON 3.10 🔥🔥
+# 🔥🔥 Use PYTHON 3.10 - 3.11.5 🔥🔥
 
 ## Features  
 | Feature                                                     | Supported  |
@@ -17,15 +17,17 @@
 
 ## [Settings](https://github.com/vanhbakaa/Cexio-Tap-bot/blob/main/.env-example)
 | Settings | Description |
-|--------------------------|:-------------------------------------------------------------------------------------------------------------:|
-| **API_ID / API_HASH**    | Platform data from which to run the Telegram session (default - android)                                      |
-| **AUTO_TAP**             | Automatically tapping (e.g. True)  IMPORTANT please dont open app while you are running bot with this option  |                                
-| **RANDOM_TAPS_COUNT**    | How many taps will be clicked (e.g. [25, 75])                                                                 |
-| **AUTO_CONVERT**         | Auto convert BTC balance to coin (e.g. True)                                                                  |
-| **MINIMUM_TO_CONVERT**   | Minimum BTC balance to convert (e.g. 0.1)                                                                     |
-| **AUTO_BUY_UPGRADE**     | Auto upgrade the most profitable card (eg. True)                                                              |
-| **AUTO_TASK**            | Auto tasks (one time) ((eg. True))                                                                            |
-| **USE_PROXY_FROM_FILE**  | Whether to use a proxy from the bot/config/proxies.txt file (True / False)                                    |
+|----------------------------|:-------------------------------------------------------------------------------------------------------------:|
+| **API_ID / API_HASH**      | Platform data from which to run the Telegram session (default - android)                                      |
+| **AUTO_TAP**               | Automatically tapping (e.g. True)  IMPORTANT please dont open app while you are running bot with this option  |                                
+| **RANDOM_TAPS_COUNT**      | How many taps will be clicked (e.g. [25, 75])                                                                 |
+| **SLEEP_BETWEEN_TAPS**     | Random delay between taps (e.g. [25, 35])                                                                     |
+| **AUTO_CONVERT**           | Auto convert BTC balance to coin (e.g. True)                                                                  |
+| **MINIMUM_TO_CONVERT**     | Minimum BTC balance to convert (e.g. 0.1)                                                                     |
+| **AUTO_BUY_UPGRADE**       | Auto upgrade the most profitable card (eg. True)                                                              |
+| **AUTO_TASK**              | Auto tasks (one time) ((eg. True))                                                                            |
+| **AUTO_CLAIM_SQUAD_BONUS** | Auto claim bonus from ref (one time) ((eg. False))                                                            |
+| **USE_PROXY_FROM_FILE**    | Whether to use a proxy from the bot/config/proxies.txt file (True / False)                                    |
 
 
 ## Quick Start 📚
