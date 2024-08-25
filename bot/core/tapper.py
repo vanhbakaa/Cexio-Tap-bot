@@ -26,7 +26,7 @@ import traceback
 api_profile = 'https://cexp.cex.io/api/v2/getUserInfo/'  # POST
 api_convert = 'https://cexp.cex.io/api/v2/convert/'  # POST
 api_claimBTC = 'https://cexp.cex.io/api/v2/claimCrypto/'  # POST
-api_tap = 'https://cexp.cex.io/api/v2/claimMultiTaps/'  # POST
+api_tap = 'https://cexp.cex.io/api/v2/claimMultiTaps'  # POST
 api_data = 'https://cexp.cex.io/api/v2/getGameConfig'  # post
 api_priceData = 'https://cexp.cex.io/api/v2/getConvertData'  # post
 api_claimRef = 'https://cexp.cex.io/api/v2/claimFromChildren'  # post
@@ -473,14 +473,14 @@ class Tapper:
                                 await self.startTask(http_client, authToken, task['taskId'])
 
                 runtime = 10
-                if settings.AUTO_TAP['ENABLE']:
+                if settings.AUTO_TAP:
                     while runtime > 0:
-                        taps = str(randint(settings.AUTO_TAP['RANDOM_TAPS_COUNT'][0], settings.AUTO_TAP['RANDOM_TAPS_COUNT'][1]))
+                        taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
                         await self.tap(http_client, authToken, taps)
                         await asyncio.sleep(1)
                         await self.claim_crypto(http_client, authToken)
                         runtime -= 1
-                        await asyncio.sleep(int(taps)/3+uniform(5, 10))
+                        await asyncio.sleep(uniform(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1]))
                     logger.info("resting and upgrade...")
                 else:
                     while runtime > 0:
@@ -489,9 +489,10 @@ class Tapper:
                         await asyncio.sleep(uniform(15, 25))
                     logger.info("resting and upgrade...")
 
-                pool_balance = await self.checkref(http_client, authToken)
-                if float(pool_balance) > 0:
-                    await self.claim_pool(http_client, authToken)
+                if settings.AUTO_CLAIM_SQUAD_BONUS:
+                    pool_balance = await self.checkref(http_client, authToken)
+                    if float(pool_balance) > 0:
+                        await self.claim_pool(http_client, authToken)
 
                 if settings.AUTO_CONVERT and self.btc_balance >= settings.MINIMUM_TO_CONVERT:
                     await self.convertBTC(http_client, authToken)

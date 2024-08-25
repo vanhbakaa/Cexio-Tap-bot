@@ -7,14 +7,14 @@ class Settings(BaseSettings):
     API_ID: int
     API_HASH: str
 
-    AUTO_TAP: dict = {
-        "ENABLE": True,
-        "RANDOM_TAPS_COUNT": [25, 75],
-    }
+    AUTO_TAP: bool = True
+    RANDOM_TAPS_COUNT: list = [25, 75]
+    SLEEP_BETWEEN_TAPS: list = [25, 35]
     AUTO_CONVERT: bool = True
     MINIMUM_TO_CONVERT: float = 0.1
     AUTO_BUY_UPGRADE: bool = True
     AUTO_TASK: bool = False
+    AUTO_CLAIM_SQUAD_BONUS: bool = False
 
     USE_PROXY_FROM_FILE: bool = False
 
