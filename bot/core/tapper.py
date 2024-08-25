@@ -162,7 +162,7 @@ class Tapper:
             "platform": "ios",
             "data": {
                 "tapsEnergy": "1000",
-                "tapsToClaim": taps,
+                "tapsToClaim": str(taps),
                 "tapsTs": time_unix
             }
         }
@@ -379,12 +379,10 @@ class Tapper:
                 # print(card)
                 if card['upgradeId'] in self.card1:
                     card_lvl = self.card1[card['upgradeId']]['lvl']
+                    if len(card['levels']) >= card_lvl:
+                        continue
                     if len(card['levels']) > 0:
-                        try:
-                            potential = card['levels'][card_lvl][0]/card['levels'][card_lvl][2]
-                        except:
-                            print(f"{self.session_name}: ERROR WHILE FETHCHING CARD: {card} || {card_lvl}")
-                            continue
+                        potential = card['levels'][card_lvl][0]/card['levels'][card_lvl][2]
                         self.potential_card.update({
                             potential: {
                                 "upgradeId": card['upgradeId'],
