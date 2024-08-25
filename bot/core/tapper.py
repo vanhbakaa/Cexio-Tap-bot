@@ -155,7 +155,7 @@ class Tapper:
             await asyncio.sleep(30)
 
     async def tap(self, http_client: aiohttp.ClientSession, authToken, taps):
-        time_unix = int(time() * 1000)
+        time_unix = int((time()) * 1000)
         data = {
             "devAuthData": int(self.user_id),
             "authData": str(authToken),
@@ -173,7 +173,11 @@ class Tapper:
             self.coin_balance = data_response['balance_USD']
             logger.info(f"Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
         else:
-            logger.error(f'<red> Tap failed - response code: {response.status}</red>')
+            json_response = await response.json()
+            if "too slow" in json_response['data']['reason']:
+                logger.error(f'<red> Tap failed - your wifi is too slow to use this option please turn it off or get a better wifi</red>')
+            else:
+                logger.error(f'<red> Tap failed - response code: {response.status}</red>')
 
     async def claim_crypto(self, http_client: aiohttp.ClientSession, authToken):
         data = {
