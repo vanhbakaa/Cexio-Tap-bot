@@ -369,7 +369,7 @@ class Tapper:
         response = await http_client.post(api_getUserCard, json=data)
         if response.status == 200:
             json_response = await response.json()
-            self.card1 = json_response['cards']
+            return json_response['cards']
         else:
            return None
 
@@ -439,9 +439,11 @@ class Tapper:
         response = await http_client.post(api_buyUpgrade, json=data)
         if response.status == 200:
             logger.success(f"{self.session_name} | <green>Successfully upgraded <blue>{Buydata['upgradeId']}</blue> to level <blue>{Buydata['nextLevel']}</blue></green>")
+            return True
         else:
             logger.error(f"{self.session_name} | <red>Error while upgrade card {Buydata['upgradeId']} to lvl {Buydata['nextLevel']}. Response code: {response.status}</red>")
-
+            return False
+    
     async def run(self, proxy: str | None) -> None:
         access_token_created_time = 0
         proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
@@ -510,7 +512,7 @@ class Tapper:
                     await self.convertBTC(http_client, authToken)
 
                 if settings.AUTO_BUY_UPGRADE:
-                    await self.getUserCard(http_client, authToken)
+                    self.card1 = await self.getUserCard(http_client, authToken)
                     if self.card1:
                         await self.find_potential()
                         sorted_potential_card = dict(sorted(self.potential_card.items()))
@@ -518,7 +520,9 @@ class Tapper:
                         for card in sorted_potential_card:
                             if self.checkDependcy(sorted_potential_card[card]['dependency']):
                                 if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
-                                    await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
+                                    check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
+                                    if check:
+                                        self.potential_card.pop(card)
                                     break
 
                 delay_time = randint(60, 120)
