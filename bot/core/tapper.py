@@ -438,6 +438,8 @@ class Tapper:
         if response.status == 200:
             logger.success(f"<green>Successfully upgraded <blue>{Buydata['upgradeId']}</blue> to level <blue>{Buydata['nextLevel']}</blue></green>")
         else:
+            json_data = await response.json()
+            print(json_data)
             logger.error(f"<red>Error while upgrade card {Buydata['upgradeId']}. Response code: {response.status}</red>")
 
     async def run(self, proxy: str | None) -> None:
