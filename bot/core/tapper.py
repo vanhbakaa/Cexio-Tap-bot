@@ -440,7 +440,7 @@ class Tapper:
         if response.status == 200:
             logger.success(f"{self.session_name} | <green>Successfully upgraded <blue>{Buydata['upgradeId']}</blue> to level <blue>{Buydata['nextLevel']}</blue></green>")
         else:
-            logger.error(f"{self.session_name} | <red>Error while upgrade card {Buydata['upgradeId']} to {Buydata['nextLevel']}. Response code: {response.status}</red>")
+            logger.error(f"{self.session_name} | <red>Error while upgrade card {Buydata['upgradeId']} to lvl {Buydata['nextLevel']}. Response code: {response.status}</red>")
 
     async def run(self, proxy: str | None) -> None:
         access_token_created_time = 0
