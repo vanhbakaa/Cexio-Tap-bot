@@ -166,6 +166,7 @@ class Tapper:
                 "tapsTs": time_unix
             }
         }
+        # print(int((time()) * 1000) - time_unix)
         response = await http_client.post(api_tap, json=data)
         if response.status == 200:
             json_response = await response.json()
@@ -173,9 +174,10 @@ class Tapper:
             self.coin_balance = data_response['balance_USD']
             logger.info(f"Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
         else:
+
             json_response = await response.json()
             if "too slow" in json_response['data']['reason']:
-                logger.error(f'<red> Tap failed - your wifi is too slow to use this option please turn it off or get a better wifi</red>')
+                logger.error(f'<red> Tap failed - please stop the code and open the bot in telegram then tap 1-2 times and run this code again. it should be worked!</red>')
             else:
                 logger.error(f'<red> Tap failed - response code: {response.status}</red>')
 
