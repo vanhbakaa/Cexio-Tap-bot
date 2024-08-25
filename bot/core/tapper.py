@@ -179,6 +179,7 @@ class Tapper:
             if "too slow" in json_response['data']['reason']:
                 logger.error(f'<red> Tap failed - please stop the code and open the bot in telegram then tap 1-2 times and run this code again. it should be worked!</red>')
             else:
+                print(json_response)
                 logger.error(f'<red> Tap failed - response code: {response.status}</red>')
 
     async def claim_crypto(self, http_client: aiohttp.ClientSession, authToken):
