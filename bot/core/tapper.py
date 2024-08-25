@@ -526,7 +526,7 @@ class Tapper:
                 raise error
 
             except Exception as error:
-                #traceback.print_exc()
+                traceback.print_exc()
                 logger.error(f"{self.session_name} | Unknown error: {error}")
                 await asyncio.sleep(delay=randint(60, 120))
 
