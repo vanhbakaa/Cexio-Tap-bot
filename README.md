@@ -74,9 +74,9 @@ python3 main.py
 
 You can also use arguments for quick start, for example:
 ```shell
-~/CEX.IO-bot >>> python3 main.py --action (1/2)
+~/Cexio-Tap-bot >>> python3 main.py --action (1/2)
 # Or
-~/CEX.IO-bot >>> python3 main.py -a (1/2)
+~/Cexio-Tap-bot >>> python3 main.py -a (1/2)
 
 # 1 - Run clicker
 # 2 - Creates a session
@@ -94,9 +94,9 @@ python main.py
 
 You can also use arguments for quick start, for example:
 ```shell
-~/CEX.IO-bot >>> python main.py --action (1/2)
+~/Cexio-Tap-bot >>> python main.py --action (1/2)
 # Or
-~/CEX.IO-bot >>> python main.py -a (1/2)
+~/Cexio-Tap-bot >>> python main.py -a (1/2)
 
 # 1 - Run clicker
 # 2 - Creates a session
