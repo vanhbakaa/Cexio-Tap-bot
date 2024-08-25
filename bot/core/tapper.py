@@ -380,7 +380,11 @@ class Tapper:
                 if card['upgradeId'] in self.card1:
                     card_lvl = self.card1[card['upgradeId']]['lvl']
                     if len(card['levels']) > 0:
-                        potential = card['levels'][card_lvl][0]/card['levels'][card_lvl][2]
+                        try:
+                            potential = card['levels'][card_lvl][0]/card['levels'][card_lvl][2]
+                        except:
+                            print(card)
+                            continue
                         self.potential_card.update({
                             potential: {
                                 "upgradeId": card['upgradeId'],
