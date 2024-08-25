@@ -172,15 +172,15 @@ class Tapper:
             json_response = await response.json()
             data_response = json_response['data']
             self.coin_balance = data_response['balance_USD']
-            logger.info(f"Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
+            logger.info(f"{self.session_name} | Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
         else:
 
             json_response = await response.json()
             if "too slow" in json_response['data']['reason']:
-                logger.error(f'<red> Tap failed - please stop the code and open the bot in telegram then tap 1-2 times and run this code again. it should be worked!</red>')
+                logger.error(f'{self.session_name} | <red> Tap failed - please stop the code and open the bot in telegram then tap 1-2 times and run this code again. it should be worked!</red>')
             else:
                 print(json_response)
-                logger.error(f'<red> Tap failed - response code: {response.status}</red>')
+                logger.error(f'{self.session_name} | <red> Tap failed - response code: {response.status}</red>')
 
     async def claim_crypto(self, http_client: aiohttp.ClientSession, authToken):
         data = {
@@ -198,9 +198,9 @@ class Tapper:
             except:
                 return None
             logger.info(
-                f"Claimed <cyan>{int(data_response['claimedAmount']) / 100000}</cyan> BTC | BTC Balance: <cyan>{int(data_response['balance_BTC']) / 100000}</cyan>")
+                f"{self.session_name} | Claimed <cyan>{int(data_response['claimedAmount']) / 100000}</cyan> BTC | BTC Balance: <cyan>{int(data_response['balance_BTC']) / 100000}</cyan>")
         else:
-            logger.error(f"<red>Claim BTC failed - response code: {response.status}</red>")
+            logger.error(f"{self.session_name} | <red>Claim BTC failed - response code: {response.status}</red>")
 
     async def getConvertData(self, http_client: aiohttp.ClientSession, authToken):
         data = {
@@ -215,7 +215,7 @@ class Tapper:
             data_response = json_response['convertData']['lastPrices']
             return data_response[-1]
         else:
-            logger.error(f"<red> Can convert !| Error code: {response.status}")
+            logger.error(f"{self.session_name} | <red> Can convert !| Error code: {response.status}")
             return None
 
     async def convertBTC(self, http_client: aiohttp.ClientSession, authToken):
@@ -238,9 +238,9 @@ class Tapper:
                 data_response = json_response['convert']
                 self.coin_balance = data_response['balance_USD']
                 logger.success(
-                    f"<green> Successfully convert <yellow>{self.btc_balance}</yellow> to <yellow>{float(self.btc_balance)*float(price)}</yellow> coin - Coin balance: <yellow>{data_response['balance_USD']}</yellow></green>")
+                    f"{self.session_name} | <green> Successfully convert <yellow>{self.btc_balance}</yellow> to <yellow>{float(self.btc_balance)*float(price)}</yellow> coin - Coin balance: <yellow>{data_response['balance_USD']}</yellow></green>")
             else:
-                logger.error(f"<red>Error code {response.status} While trying to convert...</red>")
+                logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to convert...</red>")
 
     async def checkref(self, http_client: aiohttp.ClientSession, authToken):
         data = {
@@ -267,9 +267,9 @@ class Tapper:
         if response.status == 200:
             json_response = await response.json()
             logger.success(
-                f"Successfully Claimed <yellow>{int(json_response['data']['claimed_BTC']) / 100000}</yellow> | BTC balance: <yellow>{json_response['data']['balance_BTC']}</yellow>")
+                f"{self.session_name} | Successfully Claimed <yellow>{int(json_response['data']['claimed_BTC']) / 100000}</yellow> | BTC balance: <yellow>{json_response['data']['balance_BTC']}</yellow>")
         else:
-            logger.error(f"<red>Error code {response.status} While trying to claim from pool</red>")
+            logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to claim from pool</red>")
 
     async def fetch_data(self, http_client: aiohttp.ClientSession, authToken):
         data = {
@@ -284,7 +284,7 @@ class Tapper:
             self.task = json_response['tasksConfig']
             self.card = json_response['upgradeCardsConfig']
         else:
-            logger.error(f"<red>Error code {response.status} While trying to get data</red>")
+            logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to get data</red>")
 
     async def getUserTask(self, http_client: aiohttp.ClientSession, authToken):
         data = {
@@ -304,7 +304,7 @@ class Tapper:
                     self.startedTask.append(task)
             return completed_task
         else:
-            logger.error(f"<red>Error code {response.status} While trying to get completed task</red>")
+            logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to get completed task</red>")
             return None
 
     async def claimTask(self, http_client: aiohttp.ClientSession, authToken, taskId):
@@ -319,9 +319,9 @@ class Tapper:
         response = await http_client.post(api_claimTask, json=data)
         if response.status == 200:
             json_response = await response.json()
-            logger.success(f"<green>Successfully claimed <yellow>{json_response['data']['claimedBalance']}</yellow> from {taskId}</green>")
+            logger.success(f"{self.session_name} | <green>Successfully claimed <yellow>{json_response['data']['claimedBalance']}</yellow> from {taskId}</green>")
         else:
-            logger.error(f"<red>Failed to claim {taskId}. Response: {response.status}</red>")
+            logger.error(f"{self.session_name} | <red>Failed to claim {taskId}. Response: {response.status}</red>")
 
     async def checkTask(self, http_client: aiohttp.ClientSession, authToken, taskId):
         data = {
@@ -338,9 +338,9 @@ class Tapper:
             if json_response['data']['state'] == "ReadyToClaim":
                 await self.claimTask(http_client, authToken, taskId)
             else:
-                logger.info(f"{taskId} wait for check")
+                logger.info(f"{self.session_name} | {taskId} wait for check")
         else:
-            logger.error(f"<red>Failed to check task {taskId}. Response: {response.status}</red>")
+            logger.error(f"{self.session_name} | <red>Failed to check task {taskId}. Response: {response.status}</red>")
 
     async def startTask(self, http_client: aiohttp.ClientSession, authToken, taskId):
         data = {
@@ -353,11 +353,11 @@ class Tapper:
         }
         response = await http_client.post(api_startTask, json=data)
         if response.status == 200:
-            logger.info(f"Successfully started task {taskId}")
+            logger.info(f"{self.session_name} | Successfully started task {taskId}")
         else:
             if response.status == 500:
                 self.skip.append(taskId)
-            logger.error(f"<red>Failed to start task {taskId}. Response: {response.status}</red>")
+            logger.error(f"{self.session_name} | <red>Failed to start task {taskId}. Response: {response.status}</red>")
 
     async def getUserCard(self, http_client: aiohttp.ClientSession, authToken):
         data = {
@@ -383,7 +383,7 @@ class Tapper:
                         try:
                             potential = card['levels'][card_lvl][0]/card['levels'][card_lvl][2]
                         except:
-                            print(card)
+                            print(f"{self.session_name}: ERROR WHILE FETHCHING CARD: {card} || {card_lvl}")
                             continue
                         self.potential_card.update({
                             potential: {
@@ -440,11 +440,11 @@ class Tapper:
         }
         response = await http_client.post(api_buyUpgrade, json=data)
         if response.status == 200:
-            logger.success(f"<green>Successfully upgraded <blue>{Buydata['upgradeId']}</blue> to level <blue>{Buydata['nextLevel']}</blue></green>")
+            logger.success(f"{self.session_name} | <green>Successfully upgraded <blue>{Buydata['upgradeId']}</blue> to level <blue>{Buydata['nextLevel']}</blue></green>")
         else:
             json_data = await response.json()
             print(json_data)
-            logger.error(f"<red>Error while upgrade card {Buydata['upgradeId']}. Response code: {response.status}</red>")
+            logger.error(f"{self.session_name} | <red>Error while upgrade card {Buydata['upgradeId']}. Response code: {response.status}</red>")
 
     async def run(self, proxy: str | None) -> None:
         access_token_created_time = 0
@@ -460,7 +460,7 @@ class Tapper:
         while True:
             try:
                 if time() - access_token_created_time >= token_live_time or authToken == "":
-                    logger.info("Update auth token...")
+                    logger.info(f"{self.session_name} | Update auth token...")
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
                     # print(self.user_id)
                     authToken = tg_web_data
@@ -497,13 +497,13 @@ class Tapper:
                         await self.claim_crypto(http_client, authToken)
                         runtime -= 1
                         await asyncio.sleep(uniform(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1]))
-                    logger.info("resting and upgrade...")
+                    logger.info(f"{self.session_name} | resting and upgrade...")
                 else:
                     while runtime > 0:
                         await self.claim_crypto(http_client, authToken)
                         runtime -= 1
                         await asyncio.sleep(uniform(15, 25))
-                    logger.info("resting and upgrade...")
+                    logger.info(f"{self.session_name} | resting and upgrade...")
 
                 if settings.AUTO_CLAIM_SQUAD_BONUS:
                     pool_balance = await self.checkref(http_client, authToken)
@@ -526,7 +526,7 @@ class Tapper:
                                     break
 
                 delay_time = randint(60, 120)
-                logger.info(f"waiting {delay_time} seconds...")
+                logger.info(f"{self.session_name} | waiting {delay_time} seconds...")
                 await asyncio.sleep(delay=delay_time)
             except InvalidSession as error:
                 raise error
