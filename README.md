@@ -44,9 +44,9 @@ Before you begin, make sure you have the following installed:
 3. Record the API_ID and API_HASH provided after registering your application in the .env file.
 
 ## Installation
-You can download the [**repository**](https://github.com/AlexKrutoy/CEX.IO-bot) by cloning it to your system and installing the necessary dependencies:
+You can download the [**repository**](https://github.com/vanhbakaa/Cexio-Tap-bot) by cloning it to your system and installing the necessary dependencies:
 ```shell
-git clone https://github.com/AlexKrutoy/CEX.IO-bot.git
+git clone https://github.com/vanhbakaa/Cexio-Tap-bot.git
 cd CEX.IO-bot
 ```
 
