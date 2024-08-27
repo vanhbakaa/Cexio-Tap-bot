@@ -19,7 +19,9 @@ start_text = """
 /  ` |__  \_/ | /  \    |__) /  \  |  
 \__, |___ / \ | \__/    |__) \__/  |  
                                      
-            BY VANHBAKA                                                                                                       
+            BY VANHBAKA
+  JOiN TELEGRAM CHANNEL FOR MORE: 
+  https://t.me/airdrop_tool_vanh  
                                                                    
 Select an action:
 
