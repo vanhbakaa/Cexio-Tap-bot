@@ -143,8 +143,9 @@ class Tapper:
                 json_response = await response.json()
                 data_response = json_response['data']
                 self.coin_balance = data_response['balance_USD']
-                self.multi = 10**(len(data_response['balance_BTC'])-1)
+                self.multi = 10**data_response['precision_BTC']
                 self.btc_balance = int(data_response['balance_BTC']) / self.multi
+                print(f"{self.session_name}: {data_response['balance_BTC']}")
                 logger.info(
                     f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{self.btc_balance}</yellow> - Power: <yellow>{data_response['balance_CEXP']}</yellow> CEXP")
             except Exception as e:
@@ -196,6 +197,7 @@ class Tapper:
         if response.status == 200:
             json_response = await response.json()
             data_response = json_response['data']["BTC"]
+            self.multi = 10**int(data_response['precision_BTC'])
             try:
                 self.btc_balance = int(data_response['balance_BTC']) / self.multi
             except:
@@ -284,6 +286,7 @@ class Tapper:
         response = await http_client.post(api_data, json=data)
         if response.status == 200:
             json_response = await response.json(content_type=None)
+            # print(json_response)
             self.task = json_response['tasksConfig']
             self.card = json_response['upgradeCardsConfig']
         else:
