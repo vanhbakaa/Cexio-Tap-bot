@@ -195,8 +195,8 @@ class Tapper:
         if response.status == 200:
             json_response = await response.json()
             data_response = json_response['data']["BTC"]
-            self.multi = 10**int(data_response['precision_BTC'])
             try:
+                self.multi = 10 ** int(data_response['precision_BTC'])
                 self.btc_balance = int(data_response['balance_BTC']) / self.multi
             except:
                 return None
