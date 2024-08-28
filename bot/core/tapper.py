@@ -153,8 +153,6 @@ class Tapper:
                 await asyncio.sleep(30)
                 return
         else:
-            json_response = await response.json()
-            print(json_response)
             logger.error(f"Error while getting user data. Response {response.status}. Try again after 30s")
             await asyncio.sleep(30)
 
