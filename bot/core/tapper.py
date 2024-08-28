@@ -55,6 +55,7 @@ class Tapper:
         self.skip = ['register_on_cex_io']
         self.card1 = None
         self.potential_card = {}
+        self.multi = 1000000
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
         logger.info(f"Getting data for {self.session_name}")
@@ -142,13 +143,10 @@ class Tapper:
                 json_response = await response.json()
                 data_response = json_response['data']
                 self.coin_balance = data_response['balance_USD']
-                try:
-                    logger.info(
-                        f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{int(data_response['balance_BTC']) / 100000}</yellow> - Power: <yellow>{data_response['balance_CEXP']}</yellow> CEXP")
-
-                except:
-                    logger.info(
-                        f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{int(data_response['balance_BTC']) / 100000}</yellow>")
+                self.multi = 10**(len(data_response['balance_BTC'])-1)
+                self.btc_balance = int(data_response['balance_BTC']) / self.multi
+                logger.info(
+                    f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{self.btc_balance}</yellow> - Power: <yellow>{data_response['balance_CEXP']}</yellow> CEXP")
             except Exception as e:
                 logger.error(f"Error while getting user data: {e} .Try again after 30s")
                 await asyncio.sleep(30)
@@ -199,11 +197,11 @@ class Tapper:
             json_response = await response.json()
             data_response = json_response['data']["BTC"]
             try:
-                self.btc_balance = int(data_response['balance_BTC']) / 100000
+                self.btc_balance = int(data_response['balance_BTC']) / self.multi
             except:
                 return None
             logger.info(
-                f"{self.session_name} | Claimed <cyan>{int(data_response['claimedAmount']) / 100000}</cyan> BTC | BTC Balance: <cyan>{int(data_response['balance_BTC']) / 100000}</cyan>")
+                f"{self.session_name} | Claimed <cyan>{int(data_response['claimedAmount']) / self.multi}</cyan> BTC | BTC Balance: <cyan>{int(data_response['balance_BTC']) / self.multi}</cyan>")
         else:
             logger.error(f"{self.session_name} | <red>Claim BTC failed - response code: {response.status}</red>")
 
@@ -272,7 +270,7 @@ class Tapper:
         if response.status == 200:
             json_response = await response.json()
             logger.success(
-                f"{self.session_name} | Successfully Claimed <yellow>{int(json_response['data']['claimed_BTC']) / 100000}</yellow> | BTC balance: <yellow>{json_response['data']['balance_BTC']}</yellow>")
+                f"{self.session_name} | Successfully Claimed <yellow>{int(json_response['data']['claimed_BTC']) / self.multi}</yellow> | BTC balance: <yellow>{json_response['data']['balance_BTC']}</yellow>")
         else:
             logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to claim from pool</red>")
 
@@ -448,7 +446,7 @@ class Tapper:
         else:
             logger.error(f"{self.session_name} | <red>Error while upgrade card {Buydata['upgradeId']} to lvl {Buydata['nextLevel']}. Response code: {response.status}</red>")
             return False
-    
+
     async def run(self, proxy: str | None) -> None:
         access_token_created_time = 0
         proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
