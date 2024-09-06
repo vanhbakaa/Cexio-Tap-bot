@@ -143,11 +143,17 @@ class Tapper:
                 json_response = await response.json()
                 data_response = json_response['data']
                 self.coin_balance = data_response['balance_USD']
-                self.multi = 10**data_response['precision_BTC']
+                try:
+                    self.multi = 10**data_response['precision_BTC']
+                except:
+                    self.multi = 10
+                try:
+                    cexp = data_response['balance_CEXP']
+                except:
+                    cexp = "Failed to get data."
                 self.btc_balance = int(data_response['balance_BTC']) / self.multi
-                print(f"{self.session_name}: {data_response['balance_BTC']}")
                 logger.info(
-                    f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{self.btc_balance}</yellow> - Power: <yellow>{data_response['balance_CEXP']}</yellow> CEXP")
+                    f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{self.btc_balance}</yellow> - Power: <yellow>{cexp}</yellow> CEXP")
             except Exception as e:
                 logger.error(f"Error while getting user data: {e} .Try again after 30s")
                 await asyncio.sleep(30)
