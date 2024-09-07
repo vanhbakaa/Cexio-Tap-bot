@@ -150,7 +150,7 @@ class Tapper:
                 try:
                     cexp = data_response['balance_CEXP']
                 except:
-                    cexp = "Failed to get data."
+                    cexp = 0
                 self.btc_balance = int(data_response['balance_BTC']) / self.multi
                 logger.info(
                     f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{self.btc_balance}</yellow> - Power: <yellow>{cexp}</yellow> CEXP")
