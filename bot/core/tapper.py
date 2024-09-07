@@ -1,44 +1,42 @@
 import asyncio
-import traceback
+from datetime import datetime
 from time import time
-from datetime import datetime, timedelta
-from urllib.parse import unquote
+from urllib.parse import unquote, quote
 
 import aiohttp
+import pytz
 from aiocfscrape import CloudflareScraper
 from aiohttp_proxy import ProxyConnector
 from better_proxy import Proxy
 from pyrogram import Client
 from pyrogram.errors import Unauthorized, UserDeactivated, AuthKeyUnregistered, FloodWait
-from pyrogram.raw.types import InputBotAppShortName
-from pyrogram.raw.functions.messages import RequestAppWebView
+from pyrogram.raw import functions
+from pyrogram.raw.functions.messages import RequestWebView
 from bot.core.agents import generate_random_user_agent
 from bot.config import settings
-import requests
 
 from bot.utils import logger
 from bot.exceptions import InvalidSession
 from .headers import headers
-from random import randint
 
-api_auth = "https://api.rockyrabbit.io/api/v1/account/start"
-api_tap = "https://api.rockyrabbit.io/api/v1/clicker/tap"
-api_boost = "https://api.rockyrabbit.io/api/v1/boosts"
-api_boost_info = 'https://api.rockyrabbit.io/api/v1/boosts/list'
-api_task_list = 'https://api.rockyrabbit.io/api/v1/task/list'
-api_do_task = 'https://api.rockyrabbit.io/api/v1/task/upgrade'
-api_sponsor = 'https://api.rockyrabbit.io/api/v1/account/sponsor'
-api_daily = 'https://api.rockyrabbit.io/api/v1/mine/sync/daily'
-api_play_combo = 'https://api.rockyrabbit.io/api/v1/mine/combo'
-api_play_enigma = 'https://api.rockyrabbit.io/api/v1/mine/enigma'
-api_play_easter = 'https://api.rockyrabbit.io/api/v1/mine/easter-eggs'
-api_data = 'https://api.rockyrabbit.io/api/v1/config'
-api_sync = 'https://api.rockyrabbit.io/api/v1/mine/sync'
-api_ref = 'https://api.rockyrabbit.io/api/v1/account/referrals'
-api_level = 'https://api.rockyrabbit.io/api/v1/account/level_current'
-api_upgrade_card = 'https://api.rockyrabbit.io/api/v1/mine/upgrade'
-api_init = "https://api.rockyrabbit.io/api/v1/account/init"
+from random import randint, uniform
+import traceback
 
+# api endpoint
+api_profile = 'https://cexp.cex.io/api/v2/getUserInfo/'  # POST
+api_convert = 'https://cexp.cex.io/api/v2/convert/'  # POST
+api_claimBTC = 'https://cexp.cex.io/api/v2/claimCrypto/'  # POST
+api_tap = 'https://cexp.cex.io/api/v2/claimMultiTaps'  # POST
+api_data = 'https://cexp.cex.io/api/v2/getGameConfig'  # post
+api_priceData = 'https://cexp.cex.io/api/v2/getConvertData'  # post
+api_claimRef = 'https://cexp.cex.io/api/v2/claimFromChildren'  # post
+api_checkref = 'https://cexp.cex.io/api/v2/getChildren'  # post
+api_startTask = 'https://cexp.cex.io/api/v2/startTask'  # post
+api_checkTask = 'https://cexp.cex.io/api/v2/checkTask'  # post
+api_claimTask = 'https://cexp.cex.io/api/v2/claimTask'  # post
+api_checkCompletedTask = 'https://cexp.cex.io/api/v2/getUserTasks' # post
+api_getUserCard = 'https://cexp.cex.io/api/v2/getUserCards' #post
+api_buyUpgrade = 'https://cexp.cex.io/api/v2/buyUpgrade' #post
 
 class Tapper:
     def __init__(self, tg_client: Client):
@@ -47,94 +45,20 @@ class Tapper:
         self.first_name = ''
         self.last_name = ''
         self.user_id = ''
-        self.auth_token = ""
-        self.available_taps = 100000000000000000000
-        self.max_tap = 1000000000000000000000
-        self.multi = 0
-        self.boost_energy_lvl = 1
-        self.boost_turbo_lvl = 1
-        self.cool_down = 0
-        self.cool_down_turbo = 0
-        self.balance = 0
-        self.boosts = None
-        self.black_list = ['full-available-taps', 'turbo']
-        self.superset = None
-        self.enigma = None
-        self.easter = None
-        self.easter_expire = None
-        self.superset_expire = None
-        self.enigma_expire = None
-        self.task_list = None
-        self.daily_data = None
-        self.cardsInfo = None
-        self.mineCards = {}
-        self.ref = 0
-        self.user_level = 0
-        self.new_account = False
-        self.recover = 1
-        self.get_from_cache = False
-        self.logged_in = False
-        self.limit_time_cards = ['breakfast_fighter', 'snackbreak_fighter', 'lunch_fighter', 'lunchbreak_fighter',
-                                 'dinner_fighter', 'morning_fighter', 'afternoon_fighter', 'beforebed_fighter']
-
-        self.caculate_profiable_card = {}
-
-    def write_to_file(self, data):
-        f = open("enigma.txt", "w")
-        f.write(data)
-        f.close()
-
-    def get_user_level(self, auth_token):
-        try:
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = requests.post(api_level, headers=headers)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.user_level = response_data['characters'][-1]['level']
-            else:
-                self.user_level = 0
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to get level info ...: {e}</red>")
-
-    def get_ref(self, auth_token):
-        try:
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = requests.post(api_ref, headers=headers)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.ref = response_data['totalReferrals']
-            else:
-                self.ref = 0
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to get referrals info ...: {e}</red>")
-
-    def get_user_data(self, auth_token, session: requests.Session):
-        try:
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_auth, headers=headers)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.balance = response_data['clicker']['balance']
-                self.logged_in = True
-                logger.info(
-                    f"{self.session_name} | <green>Logged in</green> - Balance: <yellow>{response_data['clicker']['balance']}</yellow> - Profit per hour: <yellow>{response_data['clicker']['earnPassivePerHour']}</yellow> - Total earned: <yellow>{response_data['clicker']['totalBalance']}</yellow>")
-
-            else:
-                self.logged_in = False
-                logger.info(f"{self.session_name} | login failed... Response code: {response.status_code}")
-
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to get user data...: {e}</red>")
+        self.Total_Point_Earned = 0
+        self.Total_Game_Played = 0
+        self.btc_balance = 0
+        self.coin_balance = 0
+        self.task = None
+        self.card = None
+        self.startedTask = []
+        self.skip = ['register_on_cex_io']
+        self.card1 = None
+        self.potential_card = {}
+        self.multi = 1000000
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
-        start_param = settings.REF_LINK.split("=")[1]
-        # print(start_param)
+        logger.info(f"Getting data for {self.session_name}")
         if proxy:
             proxy = Proxy.from_str(proxy)
             proxy_dict = dict(
@@ -153,21 +77,13 @@ class Tapper:
             if not self.tg_client.is_connected:
                 try:
                     await self.tg_client.connect()
-                    start_command_found = False
-                    async for message in self.tg_client.get_chat_history('rocky_rabbit_bot'):
-                        if (message.text and message.text.startswith('/start')) or (
-                                message.caption and message.caption.startswith('/start')):
-                            start_command_found = True
-                            break
-                    if not start_command_found:
-                        self.new_account = True
-                        await self.tg_client.send_message('rocky_rabbit_bot', "Started to play with bot!")
+
                 except (Unauthorized, UserDeactivated, AuthKeyUnregistered):
                     raise InvalidSession(self.session_name)
 
             while True:
                 try:
-                    peer = await self.tg_client.resolve_peer('rocky_rabbit_bot')
+                    peer = await self.tg_client.resolve_peer('cexio_tap_bot')
                     break
                 except FloodWait as fl:
                     fls = fl.value
@@ -177,21 +93,26 @@ class Tapper:
 
                     await asyncio.sleep(fls + 3)
 
-            web_view = await self.tg_client.invoke(RequestAppWebView(
+            web_view = await self.tg_client.invoke(RequestWebView(
                 peer=peer,
-                app=InputBotAppShortName(bot_id=peer, short_name="play"),
+                bot=peer,
                 platform='android',
-                write_allowed=True,
-                start_param=start_param
+                from_bot_menu=False,
+                url="https://cexp2.cex.io/",
             ))
 
             auth_url = web_view.url
-            # print(auth_url)
-            tg_web_data = unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
+            tg_web_data = unquote(
+                string=unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0]))
+
+            self.user_id = tg_web_data.split('"id":')[1].split(',"first_name"')[0]
+            self.first_name = tg_web_data.split('"first_name":"')[1].split('","last_name"')[0]
+            self.last_name = tg_web_data.split('"last_name":"')[1].split('","username"')[0]
 
             if self.tg_client.is_connected:
                 await self.tg_client.disconnect()
-            return tg_web_data
+
+            return unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
 
         except InvalidSession as error:
             raise error
@@ -201,701 +122,422 @@ class Tapper:
                          f"{error}")
             await asyncio.sleep(delay=3)
 
-    async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy):
+    async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy) -> None:
         try:
             response = await http_client.get(url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5))
             ip = (await response.json()).get('origin')
             logger.info(f"{self.session_name} | Proxy IP: {ip}")
-            return True
         except Exception as error:
             logger.error(f"{self.session_name} | Proxy: {proxy} | Error: {error}")
-            return False
 
-    def acount_init(self, auth_token, session: requests.Session):
-        try:
-            data = {"lang": "en", "sex": "male"}
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_init, headers=headers, json=data)
-            if response.status_code == 200:
-                logger.info(
-                    f"{self.session_name} | <green>Successfully set up account</green>")
-                self.new_account = False
-            else:
-                print(response.json())
-                logger.info(f"{self.session_name} | Set up account failed... Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to set up ...: {e}</red>")
-
-    async def join_channel(self):
-        try:
-            logger.info(f"{self.session_name} | Joining TG channel...")
-            if not self.tg_client.is_connected:
-                try:
-                    await self.tg_client.connect()
-                except (Unauthorized, UserDeactivated, AuthKeyUnregistered):
-                    raise InvalidSession(self.session_name)
+    async def get_user_info(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {}
+        }
+        response = await http_client.post(api_profile, json=data)
+        if response.status == 200:
             try:
-                await self.tg_client.join_chat("rockyrabbitio")
-                logger.success(f"{self.session_name} | <green>Joined channel successfully</green>")
+                json_response = await response.json()
+                data_response = json_response['data']
+                self.coin_balance = data_response['balance_USD']
+                try:
+                    self.multi = 10**data_response['precision_BTC']
+                except:
+                    self.multi = 10
+                try:
+                    cexp = data_response['balance_CEXP']
+                except:
+                    cexp = 0
+                self.btc_balance = int(data_response['balance_BTC']) / self.multi
+                logger.info(
+                    f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{self.btc_balance}</yellow> - Power: <yellow>{cexp}</yellow> CEXP")
             except Exception as e:
-                logger.error(f"{self.session_name} | <red>Join TG channel failed - Error: {e}</red>")
-
-        except Exception as error:
-            logger.error(f"<light-yellow>{self.session_name}</light-yellow> | Unknown error during Authorization: "
-                         f"{error}")
-            await asyncio.sleep(delay=3)
-
-    def auto_tap(self, auth_token, tapcount: int, session: requests.Session):
-        try:
-            payload = {
-                "count": int(tapcount)
-            }
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_tap, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.available_taps = response_data['clicker']['availableTaps']
-                self.recover = response_data['clicker']['tapsRecoverPerSec']
-                self.max_tap = response_data['clicker']['maxTaps']
-                self.multi = response_data['clicker']['earnPerTap']
-                logger.info(
-                    f"{self.session_name} | <green>Successfully tapped {tapcount} times</green> - Balance: <yellow>{response_data['clicker']['balance']}</yellow> - Available energy: <yellow>{response_data['clicker']['availableTaps']}/{self.max_tap}</yellow> - Earned: <yellow>{response_data['clicker']['balance'] - self.balance}</yellow>")
-                self.balance = response_data['clicker']['balance']
-            else:
-                # print(response)
-                logger.info(f"{self.session_name} | Tap failed... Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to Tap ...: {e}</red>")
-
-    def boost_energy(self, auth_token, session: requests.Session):
-        try:
-            payload = {
-                "boostId": "full-available-taps",
-                "timezone": "Asia/Bangkok"
-            }
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_boost, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.available_taps = response_data['clicker']['maxTaps']
-                self.boost_energy_lvl = response_data['boost']['level']
-                self.cool_down = response_data['boost']['lastUpgradeAt']
-                logger.info(
-                    f"{self.session_name} | <green>Successfully boost full energy...</green>")
-            else:
-                if response.status_code == 422:
-                    self.cool_down = time()
-                logger.info(f"{self.session_name} | Boost failed... Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to boost ...: {e}</red>")
-
-    def boost_turbo(self, auth_token, session: requests.Session):
-        try:
-            payload = {
-                "boostId": "turbo",
-                "timezone": "Asia/Bangkok"
-            }
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_boost, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.boost_turbo_lvl = response_data['boost']['level']
-                logger.info(
-                    f"{self.session_name} | <green>Successfully boost turbo...</green>")
-                return True
-            else:
-                logger.info(f"{self.session_name} | Boost failed... Response code: {response.status_code}")
-                return False
-        except Exception as e:
-            traceback.print_exc()
-
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to boost ...: {e}</red>")
-            return False
-
-    def get_boost_info(self, auth_token, session: requests.Session):
-        try:
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_boost_info, headers=headers)
-            if response.status_code == 200:
-                response_data = response.json()
-                for boost in response_data['boostsList']:
-                    if boost['boostId'] == "turbo":
-                        self.boost_turbo_lvl = boost['level']
-                        self.cool_down_turbo = boost['lastUpgradeAt']
-                    elif boost['boostId'] == "full-available-taps":
-                        self.boost_energy_lvl = boost['level']
-                        self.cool_down = boost['lastUpgradeAt']
-                self.boosts = response_data['boostsList']
-            else:
-                logger.info(f"{self.session_name} | Get boost info failed... Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to get boost info ...: {e}</red>")
-
-    def upgrade_boost(self, auth_token, boostId, session: requests.Session):
-        try:
-            if boostId == "earn-per-tap":
-                txt = "Multi-tap"
-            elif boostId == "max-taps":
-                txt = "Energy Limit"
-            else:
-                txt = "Hourly income limit"
-            payload = {
-                "boostId": boostId,
-                "timezone": "Asia/Bangkok"
-            }
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_boost, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.balance = response_data['clicker']['balance']
-                logger.info(
-                    f"{self.session_name} | <green>Successfully upgraded {txt} to lvl: {response_data['boostNewLevel']['level']}</green>")
-            else:
-                logger.info(f"{self.session_name} | Upgrade {txt} failed.. Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to upgrade {txt} ...: {e}</red>")
-
-    def get_task_list(self, auth_token, session: requests.Session):
-        try:
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_task_list, headers=headers)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.task_list = response_data['tasks']
-            else:
-                logger.info(f"{self.session_name} | Get tasks failed... Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to get task list ...: {e}</red>")
-
-    async def do_task(self, auth_token, taskId, session: requests.Session):
-        try:
-            payload = {
-                "taskId": taskId,
-                "timezone": "Asia/Bangkok"
-            }
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_do_task, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.balance = response_data['clicker']['balance']
-                logger.success(
-                    f"{self.session_name} | <green>Successfully claimed {taskId} - Reward: <yellow>{response_data['task']['rewardCoins']}</yellow></green>")
-            else:
-                if response.status_code == 422:
-                    response_data = response.json()
-                    if response_data['message'] == "you_are_not_subscribe_to_channel":
-                        await self.join_channel()
-                logger.info(
-                    f"{self.session_name} | failed to do task: {taskId} - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(
-                f"{self.session_name} | <red>Unknown error while trying to do task: {taskId} - Error: {e}</red>")
-
-    def choose_sponsor(self, auth_token, session: requests.Session):
-        try:
-            payload = {
-                "sponsor": "okx"
-            }
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_sponsor, headers=headers, json=payload)
-            if response.status_code == 200:
-                logger.success(f"{self.session_name} | Successfully chosen sponsor...")
-            else:
-                logger.info(f"{self.session_name} | Failed to choose sponsor - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to choose sponsor - Error: {e}</red>")
-
-    def get_daily_combo(self):
-        response = requests.get("https://freddywhest.github.io/rocky-rabbit-combos/data.json")
-        if response.status_code == 200:
-            response_data = response.json()
-            with open("enigma.txt", "r") as f:
-                enigma_from_cache = f.read()
-                # print(enigma_from_cache)
-
-            response_enigma = ",".join(response_data['enigma'])
-            if enigma_from_cache != response_enigma:
-                self.enigma = response_enigma
-                self.get_from_cache = False
-                self.write_to_file(response_enigma)
-            else:
-                self.get_from_cache = True
-                self.enigma = enigma_from_cache
-            self.easter = response_data['easter']
-            self.superset = response_data['cards']
-            self.easter_expire = response_data['expireAtForEaster']
-            self.superset_expire = response_data['expireAtForCards']
+                logger.error(f"Error while getting user data: {e} .Try again after 30s")
+                await asyncio.sleep(30)
+                return
         else:
-            logger.info(f"{self.session_name} | Get combo data failed.. Response code: {response.status_code}")
+            logger.error(f"Error while getting user data. Response {response.status}. Try again after 30s")
+            await asyncio.sleep(30)
 
-    def get_daily_data(self, auth_token, session: requests.Session):
-        try:
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_daily, headers=headers)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.daily_data = response_data
-            else:
-                logger.info(
-                    f"{self.session_name} | failed to do get daily info - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(
-                f"{self.session_name} | <red>Unknown error while trying get daily info - Error: {e}</red>")
-
-    def play_enigma(self, auth_token, enigmaId, passphase, session: requests.Session):
-        try:
-
-            payload = {
-                "enigmaId": enigmaId,
-                "passphrase": passphase
+    async def tap(self, http_client: aiohttp.ClientSession, authToken, taps):
+        time_unix = int((time()) * 1000)
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {
+                "tapsEnergy": "1000",
+                "tapsToClaim": str(taps),
+                "tapsTs": time_unix
             }
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_play_enigma, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.balance = response_data['clicker']['balance']
-                logger.success(
-                    f"{self.session_name} | <green>Successfully claimed enigma</green> | Balance: <yellow>{response_data['clicker']['balance']}</yellow> | Total balance: <yellow>{response_data['clicker']['totalBalance']}</yellow>")
-            else:
-                print(response.json())
-                logger.info(f"{self.session_name} | Failed to claim enigma - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to claim enigma - Error: {e}</red>")
+        }
+        # print(int((time()) * 1000) - time_unix)
+        response = await http_client.post(api_tap, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            data_response = json_response['data']
+            self.coin_balance = data_response['balance_USD']
+            logger.info(f"{self.session_name} | Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
+        else:
 
-    def play_superset(self, auth_token, comboId, cards, session: requests.Session):
-        try:
-            codei = ",".join(cards)
-            payload = {
-                "comboId": comboId,
-                "combos": codei
+            json_response = await response.json()
+            if "too slow" in json_response['data']['reason']:
+                logger.error(f'{self.session_name} | <red> Tap failed - please stop the code and open the bot in telegram then tap 1-2 times and run this code again. it should be worked!</red>')
+            else:
+                print(json_response)
+                logger.error(f'{self.session_name} | <red> Tap failed - response code: {response.status}</red>')
+
+    async def claim_crypto(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {}
+        }
+        response = await http_client.post(api_claimBTC, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            data_response = json_response['data']["BTC"]
+            try:
+                self.multi = 10 ** int(data_response['precision_BTC'])
+                self.btc_balance = int(data_response['balance_BTC']) / self.multi
+            except:
+                return None
+            logger.info(
+                f"{self.session_name} | Claimed <cyan>{int(data_response['claimedAmount']) / self.multi}</cyan> BTC | BTC Balance: <cyan>{int(data_response['balance_BTC']) / self.multi}</cyan>")
+        else:
+            logger.error(f"{self.session_name} | <red>Claim BTC failed - response code: {response.status}</red>")
+
+    async def getConvertData(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {}
+        }
+        response = await http_client.post(api_priceData, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            data_response = json_response['convertData']['lastPrices']
+            return data_response[-1]
+        else:
+            logger.error(f"{self.session_name} | <red> Can convert !| Error code: {response.status}")
+            return None
+
+    async def convertBTC(self, http_client: aiohttp.ClientSession, authToken):
+        price = await self.getConvertData(http_client, authToken)
+        if price:
+            data = {
+                "devAuthData": int(self.user_id),
+                "authData": str(authToken),
+                "platform": "ios",
+                "data": {
+                    "fromCcy": "BTC",
+                    "toCcy": "USD",
+                    "price": str(price),
+                    "fromAmount": str(self.btc_balance)
+                }
             }
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_play_combo, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.balance = response_data['clicker']['balance']
+            response = await http_client.post(api_convert, json=data)
+            if response.status == 200:
+                json_response = await response.json()
+                data_response = json_response['convert']
+                self.coin_balance = data_response['balance_USD']
                 logger.success(
-                    f"{self.session_name} | <green>Successfully claimed superset</green> | Balance: <yellow>{response_data['clicker']['balance']}</yellow> | Total balance: <yellow>{response_data['clicker']['totalBalance']}</yellow>")
+                    f"{self.session_name} | <green> Successfully convert <yellow>{self.btc_balance}</yellow> to <yellow>{float(self.btc_balance)*float(price)}</yellow> coin - Coin balance: <yellow>{data_response['balance_USD']}</yellow></green>")
             else:
-                logger.info(f"{self.session_name} | Failed to claim superset - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to claim superset - Error: {e}</red>")
+                logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to convert...</red>")
 
-    def play_easter(self, auth_token, easter, easterEggsId, session: requests.Session):
-        try:
-            payload = {
-                "easter": easter,
-                "easterEggsId": easterEggsId
+    async def checkref(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {}
+        }
+        response = await http_client.post(api_checkref, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            return json_response['data']['totalRewardsToClaim']
+        else:
+            return 0
+
+    async def claim_pool(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {}
+        }
+        response = await http_client.post(api_claimRef, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            logger.success(
+                f"{self.session_name} | Successfully Claimed <yellow>{int(json_response['data']['claimed_BTC']) / self.multi}</yellow> | BTC balance: <yellow>{json_response['data']['balance_BTC']}</yellow>")
+        else:
+            logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to claim from pool</red>")
+
+    async def fetch_data(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {}
+        }
+        response = await http_client.post(api_data, json=data)
+        if response.status == 200:
+            json_response = await response.json(content_type=None)
+            # print(json_response)
+            self.task = json_response['tasksConfig']
+            self.card = json_response['upgradeCardsConfig']
+        else:
+            logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to get data</red>")
+
+    async def getUserTask(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {}
+        }
+        response = await http_client.post(api_checkCompletedTask, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            completed_task = []
+            for task in json_response['tasks']:
+                if json_response['tasks'][task]['state'] == "Claimed":
+                    completed_task.append(task)
+                elif json_response['tasks'][task]['state'] == "ReadyToCheck":
+                    self.startedTask.append(task)
+            return completed_task
+        else:
+            logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to get completed task</red>")
+            return None
+
+    async def claimTask(self, http_client: aiohttp.ClientSession, authToken, taskId):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {
+                "taskId": taskId
             }
-            print(payload)
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_play_easter, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                self.balance = response_data['clicker']['balance']
-                logger.success(
-                    f"{self.session_name} | <green>Successfully claimed easter egg</green> | Balance: <yellow>{response_data['clicker']['balance']}</yellow> | Total balance: <yellow>{response_data['clicker']['totalBalance']}</yellow>")
-            else:
-                if response.status_code == 422:
-                    response_data = response.json()
-                    print(response_data)
-                logger.info(f"{self.session_name} | Failed to claim easter egg - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(
-                f"{self.session_name} | <red>Unknown error while trying to claim easter egg - Error: {e}</red>")
+        }
+        response = await http_client.post(api_claimTask, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            logger.success(f"{self.session_name} | <green>Successfully claimed <yellow>{json_response['data']['claimedBalance']}</yellow> from {taskId}</green>")
+        else:
+            logger.error(f"{self.session_name} | <red>Failed to claim {taskId}. Response: {response.status}</red>")
 
-    def get_cards_info(self, auth_token, session: requests.Session):
-        try:
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_data, headers=headers)
-            if response.status_code == 200:
-                response_data = response.json()
-                # print(response_data)
-                self.cardsInfo = response_data['config']['upgrade']
+    async def checkTask(self, http_client: aiohttp.ClientSession, authToken, taskId):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {
+                "taskId": taskId
+            }
+        }
+        response = await http_client.post(api_checkTask, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            if json_response['data']['state'] == "ReadyToClaim":
+                await self.claimTask(http_client, authToken, taskId)
             else:
-                logger.info(f"{self.session_name} | Failed to get cards info - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(f"{self.session_name} | <red>Unknown error while trying to get cards info - Error: {e}</red>")
+                logger.info(f"{self.session_name} | {taskId} wait for check")
+        else:
+            logger.error(f"{self.session_name} | <red>Failed to check task {taskId}. Response: {response.status}</red>")
 
-    def get_user_cards(self, auth_token, session: requests.Session):
-        try:
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_sync, headers=headers)
-            if response.status_code == 200:
-                response_data = response.json()
-                for card in response_data:
-                    self.mineCards.update({
-                        card['upgradeId']: card
-                    })
-            else:
-                logger.info(
-                    f"{self.session_name} | Failed to get user's cards info - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(
-                f"{self.session_name} | <red>Unknown error while trying to get user's cards info - Error: {e}</red>")
+    async def startTask(self, http_client: aiohttp.ClientSession, authToken, taskId):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {
+                "taskId": taskId
+            }
+        }
+        response = await http_client.post(api_startTask, json=data)
+        if response.status == 200:
+            logger.info(f"{self.session_name} | Successfully started task {taskId}")
+        else:
+            if response.status == 500:
+                self.skip.append(taskId)
+            logger.error(f"{self.session_name} | <red>Failed to start task {taskId}. Response: {response.status}</red>")
 
-    def check_condition(self, card):
-        # print(card['condition'])
-        # print(self.mineCards[card['upgradeId']])
-        if self.mineCards[card['upgradeId']]['isCompleted']:
-            # logger.info(f"cant upgrade {card['upgradeId']} | reached max level")
+    async def getUserCard(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {}
+        }
+        response = await http_client.post(api_getUserCard, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            return json_response['cards']
+        else:
+           return None
+
+    async def find_potential(self):
+        for category in self.card:
+            for card in category['upgrades']:
+                # print(card)
+                if card['upgradeId'] in self.card1:
+                    card_lvl = self.card1[card['upgradeId']]['lvl']
+                    if len(card['levels']) <= card_lvl:
+                        continue
+                    if len(card['levels']) > 0:
+                        potential = card['levels'][card_lvl][0]/card['levels'][card_lvl][2]
+                        self.potential_card.update({
+                            potential: {
+                                "upgradeId": card['upgradeId'],
+                                "cost": card['levels'][card_lvl][0],
+                                "effect": card['levels'][card_lvl][2],
+                                "categoryId": category['categoryId'],
+                                "nextLevel": card_lvl + 1,
+                                "effectCcy": "CEXP",
+                                "ccy": "USD",
+                                "dependency": card['dependency']
+                            }
+                        })
+                else:
+                    if len(card['levels']) > 0:
+                        if card['levels'][0][2] != 0:
+                            potential = card['levels'][0][0]/card['levels'][0][2]
+                            self.potential_card.update({
+                                potential: {
+                                    "upgradeId":  card['upgradeId'],
+                                    "cost": card['levels'][0][0],
+                                    "effect": card['levels'][0][2],
+                                    "categoryId": category['categoryId'],
+                                    "nextLevel": 1,
+                                    "effectCcy": "CEXP",
+                                    "ccy": "USD",
+                                    "dependency": card['dependency']
+                                }
+                            })
+
+    def checkDependcy(self, dependency):
+        if len(dependency) == 0:
+            return True
+        if dependency['upgradeId'] not in self.card1:
             return False
-        elif self.balance < self.mineCards[card['upgradeId']]['price'] and card['tab'] != 'Claim':
-            # logger.info(f"cant upgrade {card['upgradeId']} because of low balance")
-            return False
-        elif self.mineCards[card['upgradeId']]['type'] == "daily" and self.mineCards[card['upgradeId']][
-            'lastUpgradeAt'] != 0 and card['upgradeId'] not in self.limit_time_cards:
-            timestamp_datetime = datetime.fromtimestamp(self.mineCards[card['upgradeId']]['lastUpgradeAt'])
-            now = datetime.now()
-            if (now - timestamp_datetime) < timedelta(days=1):
-                # logger.info(f"cant upgrade {card['upgradeId']} 24h ago")
-                return False
-        elif len(card['condition']) == 0:
+        if self.card1[dependency['upgradeId']]['lvl'] >= dependency['level']:
+            return True
+        return False
+
+    async def buyUpgrade(self, http_client: aiohttp.ClientSession, authToken, Buydata):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": str(authToken),
+            "platform": "ios",
+            "data": {
+                "categoryId": Buydata['categoryId'],
+                "ccy": Buydata['ccy'],
+                "cost": Buydata['cost'],
+                "effect": Buydata['effect'],
+                "effectCcy": Buydata['effectCcy'],
+                "nextLevel": Buydata['nextLevel'],
+                "upgradeId": Buydata['upgradeId']
+            }
+        }
+        response = await http_client.post(api_buyUpgrade, json=data)
+        if response.status == 200:
+            logger.success(f"{self.session_name} | <green>Successfully upgraded <blue>{Buydata['upgradeId']}</blue> to level <blue>{Buydata['nextLevel']}</blue></green>")
             return True
         else:
-            for condition in card['condition']:
-                if condition['levelUpID'] == "" and condition['type'] == "limit-time":
-                    start_time = datetime.strptime(f"{condition['startHour']}:00:01", "%H:%M:%S").time()
-                    end_time = datetime.strptime(f"{condition['endHour']}:00:00", "%H:%M:%S").time()
-                    curr_time = datetime.now().time()
-                    if start_time <= curr_time <= end_time:
-                        pass
-                    else:
-                        # logger.info(f"cant upgrade {card['upgradeId']} because time condition")
-                        return False
-                elif condition['type'] == "by-upgrade-user" or condition['type'] == "by-upgrade":
-                    if (self.mineCards[condition['levelUpID']]['level'] - 1) >= self.user_level:
-                        pass
-                    else:
-                        # logger.info(f"cant upgrade {card['upgradeId']} because card condition not met")
-                        return False
-
-                elif condition['type'] == "invite-friend":
-                    if self.ref >= condition['level']:
-                        pass
-                    else:
-                        # logger.info(f"cant upgrade {card['upgradeId']} because ref")
-                        return False
-                elif condition['type'] == 'level-user':
-                    if self.mineCards[card['upgradeId']]['level'] > self.user_level:
-                        return False
-                elif condition['type'] == 'by-level':
-                    card_name = 'league_' + str(condition['level'] - 1)
-                    # print(card_name)
-                    if card_name == 'league_0':
-                        return True
-                    if self.mineCards[card_name]['level'] <= 10:
-                        # logger.info(f"cant upgrade {card['upgradeId']} because user level too low")
-                        return False
-                    else:
-                        return True
-        return True
-
-    def upgrade_card(self, auth_token, cardId, cost, type, session: requests.Session):
-        try:
-            payload = {
-                "upgradeId": cardId,
-            }
-
-            headers['Authorization'] = f'tma {auth_token}'
-            # print(headers)
-            response = session.post(api_upgrade_card, headers=headers, json=payload)
-            if response.status_code == 200:
-                response_data = response.json()
-                if self.balance > response_data['clicker']['balance']:
-                    logger.success(
-                        f"{self.session_name} | <green>Successfully upgraded {response_data['upgradesTask']['upgradeId']}</green> | Cost: <yellow>{cost}</yellow> | Balance: <yellow>{response_data['clicker']['balance']}</yellow>")
-                else:
-                    logger.success(
-                        f"{self.session_name} | <green>Successfully claimed {response_data['upgradesTask']['upgradeId']}</green> | Earned: <yellow>{cost}</yellow> | Balance: <yellow>{response_data['clicker']['balance']}</yellow>")
-
-                self.balance = response_data['clicker']['balance']
-            else:
-                if type == "Claim":
-                    logger.info(f"{self.session_name} | Failed to Claim {cardId} - Not time to claim yet")
-                elif response.status_code == 422:
-                    response_data = response.json()
-                    print(response_data)
-                    logger.info(
-                        f"{self.session_name} | Failed to upgrade {cardId} - Response code: {response.status_code}")
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(
-                f"{self.session_name} | <red>Unknown error while trying to upgrade {cardId} - Error: {e}</red>")
-
-    def last_update(self, time_stampe):
-        current_time = time()
-        return current_time - time_stampe
+            logger.error(f"{self.session_name} | <red>Error while upgrade card {Buydata['upgradeId']} to lvl {Buydata['nextLevel']}. Response code: {response.status}</red>")
+            return False
 
     async def run(self, proxy: str | None) -> None:
         access_token_created_time = 0
         proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
 
-        headers["User-Agent"] = generate_random_user_agent(device_type='android', browser_type='chrome')
+        headers["user-agent"] = generate_random_user_agent(device_type='android', browser_type='chrome')
         http_client = CloudflareScraper(headers=headers, connector=proxy_conn)
-        session = requests.Session()
 
         if proxy:
-            proxy_check = await self.check_proxy(http_client=http_client, proxy=proxy)
-            if proxy_check:
-                proxy_type = proxy.split(':')[0]
-                proxies = {
-                    proxy_type: proxy
-                }
-                session.proxies.update(proxies)
-                logger.info(f"{self.session_name} | bind with proxy ip: {proxy}")
-
+            await self.check_proxy(http_client=http_client, proxy=proxy)
+        authToken = ""
         token_live_time = randint(3500, 3600)
         while True:
             try:
-                if time() - access_token_created_time >= token_live_time:
-                    tg_web_data = await self.get_tg_web_data(proxy)
-                    self.auth_token = tg_web_data
-
-                    # print(tg_web_data)
+                if time() - access_token_created_time >= token_live_time or authToken == "":
+                    logger.info(f"{self.session_name} | Update auth token...")
+                    tg_web_data = await self.get_tg_web_data(proxy=proxy)
+                    # print(self.user_id)
+                    authToken = tg_web_data
                     access_token_created_time = time()
                     token_live_time = randint(3500, 3600)
-
-                self.get_user_data(self.auth_token, session)
-                if self.logged_in:
-                    if self.new_account:
-                        self.acount_init(self.auth_token, session)
-
-                    self.get_user_level(self.auth_token)
-                    self.get_ref(self.auth_token)
-
-                    if settings.AUTO_TASK:
-                        self.get_task_list(self.auth_token, session)
-
-                        for task in self.task_list:
-                            if task['id'] == "streak_days_reward" and task['lastUpgradeAt'] != 0:
-                                timestamp = task['lastUpgradeAt']
-                                timestamp_date = datetime.fromtimestamp(timestamp)
-                                today = datetime.now().date()
-                                yesterday = today - timedelta(days=1)
-                                if timestamp_date.date() == yesterday:
-                                    await self.do_task(self.auth_token, task['id'], session)
-                                else:
-                                    continue
-                            elif task['id'] == "invite_friends" or task['id'] == "invite_friends_10x":
+                    await asyncio.sleep(delay=randint(10, 15))
+                logger.info(f"Session {self.first_name} {self.last_name} logged in.")
+                # print(authToken)
+                await self.get_user_info(http_client, authToken)
+                if self.card is None or self.task is None:
+                    await self.fetch_data(http_client, authToken)
+                if settings.AUTO_TASK and self.task:
+                    user_task = await self.getUserTask(http_client, authToken)
+                    if user_task:
+                        for task in self.task:
+                            # print(task)
+                            if task['taskId'] in self.skip:
                                 continue
-                            elif task['id'] == "RRBOOST":
+                            elif task['taskId'] in user_task:
                                 continue
-                            elif task['id'] == "select_sponsor" and task['isCompleted'] is False:
-                                self.choose_sponsor(self.auth_token, session)
-                                await self.do_task(self.auth_token, task['id'], session)
-                                await asyncio.sleep(randint(2, 5))
-                            elif task['isCompleted'] is False:
-                                await self.do_task(self.auth_token, task['id'], session)
+                            elif task['type'] != "social":
+                                continue
+                            elif task['taskId'] in self.startedTask:
+                                await self.checkTask(http_client, authToken, task['taskId'])
                             else:
-                                continue
+                                await self.startTask(http_client, authToken, task['taskId'])
 
-                    if settings.AUTO_ENIGMA:
-                        self.get_daily_data(self.auth_token, session)
-                        self.get_daily_combo()
+                runtime = 10
+                if settings.AUTO_TAP:
+                    while runtime > 0:
+                        taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
+                        await self.tap(http_client, authToken, taps)
+                        await asyncio.sleep(1)
+                        await self.claim_crypto(http_client, authToken)
+                        runtime -= 1
+                        await asyncio.sleep(uniform(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1]))
+                    logger.info(f"{self.session_name} | resting and upgrade...")
+                else:
+                    while runtime > 0:
+                        await self.claim_crypto(http_client, authToken)
+                        runtime -= 1
+                        await asyncio.sleep(uniform(15, 25))
+                    logger.info(f"{self.session_name} | resting and upgrade...")
 
-                        if int(self.daily_data['enigma']['countTry']) >= 3:
-                            logger.info(f"{self.session_name} | Out of chances to play today, skipping...")
+                if settings.AUTO_CLAIM_SQUAD_BONUS:
+                    pool_balance = await self.checkref(http_client, authToken)
+                    if float(pool_balance) > 0:
+                        await self.claim_pool(http_client, authToken)
 
-                        elif self.daily_data['enigma']['completedAt'] == 0 and int(
-                                self.daily_data['enigma']['countTry']) > 0 and self.get_from_cache:
-                            logger.info(f"{self.session_name} | Wait to find enigma...")
-                        elif self.daily_data['enigma']['completedAt'] == 0:
-                            logger.info(f"{self.session_name} | Attempt to play enigma...")
-                            self.play_enigma(self.auth_token, self.daily_data['enigma']['enigmaId'], self.enigma, session)
-                        else:
-                            logger.info(f"{self.session_name} | Enigma already completed, skipping...")
-                        await asyncio.sleep(randint(3, 5))
+                if settings.AUTO_CONVERT and self.btc_balance >= settings.MINIMUM_TO_CONVERT:
+                    await self.convertBTC(http_client, authToken)
 
-                    if settings.AUTO_SUPERSET:
-                        self.get_daily_data(self.auth_token, session)
-                        self.get_daily_combo()
+                if settings.AUTO_BUY_UPGRADE:
+                    self.card1 = await self.getUserCard(http_client, authToken)
+                    if self.card1:
+                        await self.find_potential()
+                        sorted_potential_card = dict(sorted(self.potential_card.items()))
+                        # print(sorted_potential_card)
+                        for card in sorted_potential_card:
+                            if self.checkDependcy(sorted_potential_card[card]['dependency']):
+                                if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
+                                    check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
+                                    if check:
+                                        self.potential_card.pop(card)
+                                    break
 
-                        if self.daily_data['superSet']['completedAt'] == 0:
-                            time_to_compare = datetime.strptime(self.superset_expire, "%Y-%m-%dT%H:%M:%S.%fZ")
-                            current_time = datetime.utcnow()
-                            logger.info(f"{self.session_name} | Attempt to play superset...")
-                            if current_time < time_to_compare:
-                                self.play_superset(self.auth_token, self.daily_data['superSet']['comboId'], self.superset, session)
-                            else:
-                                logger.info(f"{self.session_name} |Wait to find cards combo...")
-                        else:
-                            logger.info(f"{self.session_name} | Superset already completed, skipping...")
-                        await asyncio.sleep(randint(3, 5))
-
-                    if settings.AUTO_EASTER:
-                        self.get_daily_data(self.auth_token, session)
-                        self.get_daily_combo()
-                        if self.daily_data['easterEggs']['completedAt'] == 0:
-                            time_to_compare = datetime.strptime(self.easter_expire, "%Y-%m-%dT%H:%M:%S.%fZ")
-                            current_time = datetime.utcnow()
-                            # print(current_time)
-                            logger.info(f"{self.session_name} | Attempt to play easter egg...")
-                            if current_time < time_to_compare:
-                                self.play_easter(self.auth_token, self.easter,
-                                                 self.daily_data['easterEggs']['easterEggsId'], session)
-                            else:
-                                logger.info(f"{self.session_name} | Wait to find easter...")
-                        else:
-                            logger.info(f"{self.session_name} | Easter egg already completed, skipping...")
-                        await asyncio.sleep(randint(3, 5))
-
-                    i = 10
-                    if settings.AUTO_TAP:
-                        if settings.AUTO_BOOST:
-                            self.get_boost_info(self.auth_token, session)
-                        while i > 0:
-                            try:
-                                tapCount = randint(settings.TAP_COUNT[0], settings.TAP_COUNT[1])
-                                if self.available_taps > tapCount * self.multi:
-                                    if settings.AUTO_BOOST:
-                                        # print(self.boost_turbo_lvl)
-                                        if self.boost_turbo_lvl <= 3 or self.last_update(self.cool_down_turbo) >= 43200:
-                                            if self.boost_turbo(self.auth_token, session):
-                                                logger.info(f"{self.session_name} | turbo boosted tap faster...")
-                                                tapCount = randint(settings.TAP_COUNT[0], settings.TAP_COUNT[1])
-                                                if self.available_taps > tapCount * self.multi:
-                                                    self.auto_tap(self.auth_token, tapCount, session)
-                                                    await asyncio.sleep(randint(3, 5))
-                                                tapCount = randint(settings.TAP_COUNT[0], settings.TAP_COUNT[1])
-                                                if self.available_taps > tapCount * self.multi:
-                                                    self.auto_tap(self.auth_token, tapCount, session)
-                                                    await asyncio.sleep(randint(3, 5))
-                                    self.auto_tap(self.auth_token, tapCount, session)
-                                    sleep_ = randint(settings.DELAY_BETWEEN_TAPS[0], settings.DELAY_BETWEEN_TAPS[1])
-                                    logger.info(f"{self.session_name} | Sleep {sleep_}s")
-                                    self.available_taps += self.recover * sleep_
-                                    await asyncio.sleep(sleep_)
-                                else:
-                                    if settings.AUTO_BOOST:
-                                        if self.boost_energy_lvl <= 8:
-                                            current_time = time()
-                                            print(current_time - self.cool_down)
-                                            if current_time - self.cool_down >= 2750 or self.last_update(
-                                                    self.cool_down) >= 43200:
-                                                self.boost_energy(self.auth_token, session)
-                                            else:
-                                                logger.info(f"{self.session_name} | Cant use boost at this time...")
-                                                sleep_ = randint(settings.DELAY_BETWEEN_TAPS[0] + 120,
-                                                                 settings.DELAY_BETWEEN_TAPS[1] + 120)
-                                                logger.info(
-                                                    f"{self.session_name} | Out of energy... -  wait {sleep_} seconds")
-                                                await asyncio.sleep(sleep_)
-                                                self.available_taps += self.recover * sleep_
-                                        else:
-                                            sleep_ = randint(settings.DELAY_BETWEEN_TAPS[0] + 120,
-                                                             settings.DELAY_BETWEEN_TAPS[1] + 120)
-                                            logger.info(
-                                                f"{self.session_name} | Out of energy... -  wait {sleep_} seconds")
-                                            await asyncio.sleep(sleep_)
-                                            self.available_taps += self.recover * sleep_
-                                    else:
-                                        sleep_ = randint(settings.DELAY_BETWEEN_TAPS[0] + 120,
-                                                         settings.DELAY_BETWEEN_TAPS[1] + 120)
-                                        logger.info(
-                                            f"{self.session_name} | Out of energy... -  wait {sleep_} seconds")
-                                        await asyncio.sleep(sleep_)
-                                        self.available_taps += self.recover * sleep_
-                            except:
-                                logger.error(f"{self.session_name} | Check your TAP_COUNT setting...")
-                            i -= 1
-
-                    if settings.AUTO_UPGRADE_CARDS:
-                        self.get_cards_info(self.auth_token, session)
-                        self.get_user_cards(self.auth_token, session)
-
-                        # print(self.mineCards)
-                        for card in self.cardsInfo:
-                            # print(self.mineCards[card])
-                            # print(card)
-                            if card['type'] == "level-up":
-                                profitable_cal = self.mineCards[card['upgradeId']]['price'] / \
-                                                 self.mineCards[card['upgradeId']]['profitPerHour']
-                                self.caculate_profiable_card.update({
-                                    profitable_cal: card
-                                })
-
-                        if len(self.caculate_profiable_card) > 0:
-                            most_profitable_card = dict(sorted(self.caculate_profiable_card.items()))
-                            # print(most_profitable_card)
-                            for card in most_profitable_card:
-                                # print(f"{card} | {most_profitable_card[card]['upgradeId']}")
-                                if self.check_condition(most_profitable_card[card]):
-                                    logger.info(f"{self.session_name} | Attemp to upgrade {most_profitable_card[card]['upgradeId']}")
-                                    self.upgrade_card(self.auth_token, most_profitable_card[card]['upgradeId'], most_profitable_card[card]['price'], most_profitable_card[card]['tab'], session)
-                                    await asyncio.sleep(randint(1,3))
-
-                            self.caculate_profiable_card.clear()
-
-                    if settings.AUTO_CLAIM_UPGRADE_CARDS:
-                        self.get_cards_info(self.auth_token, session)
-                        self.get_user_cards(self.auth_token, session)
-                        for card in self.cardsInfo:
-                            if card['type'] != "level-up":
-                                if self.check_condition(card):
-                                    self.upgrade_card(self.auth_token, card['upgradeId'],
-                                                  self.mineCards[card['upgradeId']]['price'], card['tab'], session)
-
-                    if settings.AUTO_UPGRADE_BOOST:
-                        if self.boosts is None:
-                            self.get_boost_info(self.auth_token, session)
-                        for boost in self.boosts:
-                            if boost['boostId'] in self.black_list:
-                                continue
-                            elif boost['boostId'] == "earn-per-tap" and boost['level'] >= settings.MULTI_TAP_LVL:
-                                continue
-                            elif boost['boostId'] == "max-taps" and boost['level'] >= settings.MAX_ENERGY_LVL:
-                                continue
-                            elif boost['boostId'] == "hourly-income-limit" and boost[
-                                'level'] >= settings.PASSIVE_INCOME_LVL:
-                                continue
-                            elif boost['price'] > self.balance:
-                                logger.info(f"{self.session_name} | Balance too low to buy {boost['boostId']}.")
-                                continue
-                            else:
-                                self.upgrade_boost(self.auth_token, boost['boostId'], session)
-
-                Sleep = randint(200, 300)
-                logger.info(f"Sleep {Sleep} seconds...")
-                await asyncio.sleep(Sleep)
+                delay_time = randint(60, 120)
+                logger.info(f"{self.session_name} | waiting {delay_time} seconds...")
+                await asyncio.sleep(delay=delay_time)
             except InvalidSession as error:
                 raise error
 
@@ -907,9 +549,6 @@ class Tapper:
 
 async def run_tapper(tg_client: Client, proxy: str | None):
     try:
-        sleep_ = randint(1, 15)
-        logger.info(f"{tg_client.name} | start after {sleep_}")
-        await asyncio.sleep(sleep_)
         await Tapper(tg_client=tg_client).run(proxy=proxy)
     except InvalidSession:
         logger.error(f"{tg_client.name} | Invalid Session")
