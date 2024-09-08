@@ -52,13 +52,15 @@ class Tapper:
         self.task = None
         self.card = None
         self.startedTask = []
-        self.skip = ['register_on_cex_io']
+        self.skip = ['register_on_cex_io', 'boost_telegram', 'play_piggypiggy_tap_game', 'join_btc_garden_twitter', 'subscribe_crypto_garden_telegram', 'subscribe_telegram', 'join_cedex_tap_game', 'join_wigwam_drum_game']
         self.card1 = None
         self.potential_card = {}
         self.multi = 1000000
+        self.cexp_balance = 0
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
         logger.info(f"Getting data for {self.session_name}")
+        ref_param = settings.REF_LINK.split('=')[1]
         if proxy:
             proxy = Proxy.from_str(proxy)
             proxy_dict = dict(
@@ -77,6 +79,22 @@ class Tapper:
             if not self.tg_client.is_connected:
                 try:
                     await self.tg_client.connect()
+                    start_command_found = False
+                    async for message in self.tg_client.get_chat_history('cexio_tap_bot'):
+                        if (message.text and message.text.startswith('/start')) or (
+                                message.caption and message.caption.startswith('/start')):
+                            start_command_found = True
+                            break
+                    if not start_command_found:
+                        peer = await self.tg_client.resolve_peer('cexio_tap_bot')
+                        await self.tg_client.invoke(
+                            functions.messages.StartBot(
+                                bot=peer,
+                                peer=peer,
+                                start_param=ref_param,
+                                random_id=randint(1, 9999999),
+                            )
+                        )
 
                 except (Unauthorized, UserDeactivated, AuthKeyUnregistered):
                     raise InvalidSession(self.session_name)
@@ -100,8 +118,8 @@ class Tapper:
                 from_bot_menu=False,
                 url="https://cexp2.cex.io/",
             ))
-
             auth_url = web_view.url
+            # print(unquote(auth_url))
             tg_web_data = unquote(
                 string=unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0]))
 
@@ -149,6 +167,7 @@ class Tapper:
                     self.multi = 10
                 try:
                     cexp = data_response['balance_CEXP']
+                    self.cexp_balance = int(cexp)
                 except:
                     cexp = 0
                 self.btc_balance = int(data_response['balance_BTC']) / self.multi
@@ -167,9 +186,9 @@ class Tapper:
         data = {
             "devAuthData": int(self.user_id),
             "authData": str(authToken),
-            "platform": "ios",
+            "platform": "android",
             "data": {
-                "tapsEnergy": "1000",
+                "tapsEnergy": str(1000-int(taps)),
                 "tapsToClaim": str(taps),
                 "tapsTs": time_unix
             }
@@ -182,7 +201,6 @@ class Tapper:
             self.coin_balance = data_response['balance_USD']
             logger.info(f"{self.session_name} | Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
         else:
-
             json_response = await response.json()
             if "too slow" in json_response['data']['reason']:
                 logger.error(f'{self.session_name} | <red> Tap failed - please stop the code and open the bot in telegram then tap 1-2 times and run this code again. it should be worked!</red>')
@@ -306,6 +324,7 @@ class Tapper:
         response = await http_client.post(api_checkCompletedTask, json=data)
         if response.status == 200:
             json_response = await response.json()
+            # print(json_response)
             completed_task = []
             for task in json_response['tasks']:
                 if json_response['tasks'][task]['state'] == "Claimed":
@@ -480,38 +499,40 @@ class Tapper:
                 await self.get_user_info(http_client, authToken)
                 if self.card is None or self.task is None:
                     await self.fetch_data(http_client, authToken)
-                if settings.AUTO_TASK and self.task:
-                    user_task = await self.getUserTask(http_client, authToken)
-                    if user_task:
-                        for task in self.task:
-                            # print(task)
-                            if task['taskId'] in self.skip:
-                                continue
-                            elif task['taskId'] in user_task:
-                                continue
-                            elif task['type'] != "social":
-                                continue
-                            elif task['taskId'] in self.startedTask:
-                                await self.checkTask(http_client, authToken, task['taskId'])
-                            else:
-                                await self.startTask(http_client, authToken, task['taskId'])
+                    # print(self.task)
+                if settings.AUTO_TASK:
+                    completed_tasks = await self.getUserTask(http_client, authToken)
+                    for task in self.task:
+                        #print(task)
+                        if task['taskId'] in self.skip:
+                            continue
+                        elif task['taskId'] in completed_tasks:
+                            continue
+                        elif task['type'] != "social" and task['type'] != "learn_earn":
+                            continue
+                        elif task['taskId'] in self.startedTask:
+                            await self.checkTask(http_client, authToken, task['taskId'])
+                            await asyncio.sleep(uniform(1, 2))
+                        else:
+                            await self.startTask(http_client, authToken, task['taskId'])
+                            await asyncio.sleep(uniform(1,2))
 
                 runtime = 10
                 if settings.AUTO_TAP:
                     while runtime > 0:
                         taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
                         await self.tap(http_client, authToken, taps)
-                        await asyncio.sleep(1)
-                        await self.claim_crypto(http_client, authToken)
                         runtime -= 1
                         await asyncio.sleep(uniform(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1]))
+                    await self.claim_crypto(http_client, authToken)
                     logger.info(f"{self.session_name} | resting and upgrade...")
                 else:
-                    while runtime > 0:
+                    if self.cexp_balance > 0:
                         await self.claim_crypto(http_client, authToken)
-                        runtime -= 1
-                        await asyncio.sleep(uniform(15, 25))
-                    logger.info(f"{self.session_name} | resting and upgrade...")
+                        while runtime > 0:
+                            runtime -= 1
+                            await asyncio.sleep(uniform(15, 25))
+                        logger.info(f"{self.session_name} | resting and upgrade...")
 
                 if settings.AUTO_CLAIM_SQUAD_BONUS:
                     pool_balance = await self.checkref(http_client, authToken)
@@ -523,17 +544,16 @@ class Tapper:
 
                 if settings.AUTO_BUY_UPGRADE:
                     self.card1 = await self.getUserCard(http_client, authToken)
-                    if self.card1:
-                        await self.find_potential()
-                        sorted_potential_card = dict(sorted(self.potential_card.items()))
+                    await self.find_potential()
+                    sorted_potential_card = dict(sorted(self.potential_card.items()))
                         # print(sorted_potential_card)
-                        for card in sorted_potential_card:
-                            if self.checkDependcy(sorted_potential_card[card]['dependency']):
-                                if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
-                                    check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
-                                    if check:
-                                        self.potential_card.pop(card)
-                                    break
+                    for card in sorted_potential_card:
+                        if self.checkDependcy(sorted_potential_card[card]['dependency']):
+                            if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
+                                check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
+                                if check:
+                                    self.potential_card.pop(card)
+                                break
 
                 delay_time = randint(60, 120)
                 logger.info(f"{self.session_name} | waiting {delay_time} seconds...")
