@@ -547,13 +547,17 @@ class Tapper:
                     await self.find_potential()
                     sorted_potential_card = dict(sorted(self.potential_card.items()))
                         # print(sorted_potential_card)
+
                     for card in sorted_potential_card:
                         if self.checkDependcy(sorted_potential_card[card]['dependency']):
                             if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
                                 check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
                                 if check:
                                     self.potential_card.pop(card)
+                            elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
                                 break
+                        elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
+                            break
 
                 delay_time = randint(60, 120)
                 logger.info(f"{self.session_name} | waiting {delay_time} seconds...")
