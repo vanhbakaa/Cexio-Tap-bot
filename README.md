@@ -12,6 +12,7 @@
 | Auto-claim squad reward                                       |        ✅        |
 | Auto-start, auto-check and auto-claim tasks                   |        ✅        |
 | Auto-Buy Upgrade card                                         |        ✅        |
+| Auto-REF                                                      |        ✅        |
 | Support for tdata / pyrogram .session / telethon .session     |        ✅        |
 
 
@@ -19,6 +20,7 @@
 | Settings | Description |
 |----------------------------|:-------------------------------------------------------------------------------------------------------------:|
 | **API_ID / API_HASH**      | Platform data from which to run the Telegram session (default - android)                                      |
+| **REF_LINK**               | auto register with your ref link (default: my ref link)                                                       |
 | **AUTO_TAP**               | Automatically tapping (e.g. True) IMPORTANT please dont open app while you are running bot with this option and just turn on this option if your wifi is good |                                
 | **RANDOM_TAPS_COUNT**      | How many taps will be clicked (e.g. [25, 75])                                                                 |
 | **SLEEP_BETWEEN_TAPS**     | Random delay between taps (e.g. [25, 35])                                                                     |
