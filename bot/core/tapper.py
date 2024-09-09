@@ -265,7 +265,7 @@ class Tapper:
             if response.status == 200:
                 json_response = await response.json()
                 data_response = json_response['convert']
-                self.coin_balance = int(data_response['balance_USD'])
+                self.coin_balance = int(float(data_response['balance_USD']))
                 logger.success(
                     f"{self.session_name} | <green> Successfully convert <yellow>{self.btc_balance}</yellow> to <yellow>{float(self.btc_balance)*float(price)}</yellow> coin - Coin balance: <yellow>{data_response['balance_USD']}</yellow></green>")
             else:
