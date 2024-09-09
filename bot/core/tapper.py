@@ -56,6 +56,7 @@ class Tapper:
         self.card1 = None
         self.potential_card = {}
         self.multi = 1000000
+        self.energy = 1000
         self.cexp_balance = 0
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
@@ -196,6 +197,7 @@ class Tapper:
         # print(int((time()) * 1000) - time_unix)
         response = await http_client.post(api_tap, json=data)
         if response.status == 200:
+            self.energy -= int(taps)
             json_response = await response.json()
             data_response = json_response['data']
             self.coin_balance = data_response['balance_USD']
@@ -467,6 +469,7 @@ class Tapper:
         }
         response = await http_client.post(api_buyUpgrade, json=data)
         if response.status == 200:
+            self.coin_balance -= Buydata['cost']
             logger.success(f"{self.session_name} | <green>Successfully upgraded <blue>{Buydata['upgradeId']}</blue> to level <blue>{Buydata['nextLevel']}</blue></green>")
             return True
         else:
@@ -520,10 +523,18 @@ class Tapper:
                 runtime = 10
                 if settings.AUTO_TAP:
                     while runtime > 0:
+
                         taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
-                        await self.tap(http_client, authToken, taps)
+                        if int(taps) > 1000:
+                            logger.warning(f"{self.session_name} | Invaild taps count...")
+                        elif self.energy > settings.SLEEP_BY_MIN_ENERGY:
+                            await self.tap(http_client, authToken, taps)
+                        else:
+                            logger.info(f"Minimum energy reached: {self.energy}")
                         runtime -= 1
-                        await asyncio.sleep(uniform(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1]))
+                        sleep_ = randint(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1])
+                        self.energy += sleep_*3
+                        await asyncio.sleep(sleep_)
                     await self.claim_crypto(http_client, authToken)
                     logger.info(f"{self.session_name} | resting and upgrade...")
                 else:
