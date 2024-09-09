@@ -469,7 +469,7 @@ class Tapper:
         }
         response = await http_client.post(api_buyUpgrade, json=data)
         if response.status == 200:
-            self.coin_balance -= Buydata['cost']
+            self.coin_balance -= int(Buydata['cost'])
             logger.success(f"{self.session_name} | <green>Successfully upgraded <blue>{Buydata['upgradeId']}</blue> to level <blue>{Buydata['nextLevel']}</blue></green>")
             return True
         else:
