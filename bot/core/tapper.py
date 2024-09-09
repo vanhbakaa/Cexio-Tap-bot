@@ -200,7 +200,7 @@ class Tapper:
             self.energy -= int(taps)
             json_response = await response.json()
             data_response = json_response['data']
-            self.coin_balance = int(data_response['balance_USD'])
+            self.coin_balance = int(float(data_response['balance_USD']))
             logger.info(f"{self.session_name} | Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
         else:
             json_response = await response.json()
