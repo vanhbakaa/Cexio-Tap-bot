@@ -161,7 +161,7 @@ class Tapper:
             try:
                 json_response = await response.json()
                 data_response = json_response['data']
-                self.coin_balance = int(data_response['balance_USD'])
+                self.coin_balance = int(float(data_response['balance_USD']))
                 try:
                     self.multi = 10**data_response['precision_BTC']
                 except:
