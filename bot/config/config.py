@@ -9,13 +9,14 @@ class Settings(BaseSettings):
 
     REF_LINK: str = "https://t.me/cexio_tap_bot?start=1716977635264001"
 
-    AUTO_TAP: bool = False
+    AUTO_TAP: bool = True
     RANDOM_TAPS_COUNT: list = [25, 75]
     SLEEP_BETWEEN_TAPS: list = [25, 35]
+    SLEEP_BY_MIN_ENERGY: int = 250
     AUTO_CONVERT: bool = True
     MINIMUM_TO_CONVERT: float = 0.1
     AUTO_BUY_UPGRADE: bool = True
-    WAIT_FOR_MOST_PROFITABLE_CARD: bool = True # Recommended to keep it True for high-level accounts
+    WAIT_FOR_MOST_PROFITABLE_CARD: bool = True
     AUTO_TASK: bool = True
     AUTO_CLAIM_SQUAD_BONUS: bool = False
 
