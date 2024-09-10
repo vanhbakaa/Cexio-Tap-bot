@@ -522,8 +522,8 @@ class Tapper:
 
                 runtime = 10
                 if settings.AUTO_TAP:
+                    await self.tap(http_client, authToken, 0)
                     while runtime > 0:
-
                         taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
                         if int(taps) > 1000:
                             logger.warning(f"{self.session_name} | Invaild taps count...")
