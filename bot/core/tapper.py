@@ -522,10 +522,10 @@ class Tapper:
                         else:
                             await self.startTask(http_client, authToken, task['taskId'])
                             await asyncio.sleep(uniform(1,2))
-                
+
                 if settings.AUTO_CONVERT and self.btc_balance >= settings.MINIMUM_TO_CONVERT:
                     await self.convertBTC(http_client, authToken)
-                    
+
                 if settings.AUTO_BUY_UPGRADE:
                     self.card1 = await self.getUserCard(http_client, authToken)
                     await self.find_potential()
@@ -542,12 +542,12 @@ class Tapper:
                                 break
                         elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
                             break
-                
+
                 runtime = 10
                 if settings.AUTO_TAP:
-                    await asyncio.sleep(uniform(3,6))
-                    await self.tap(http_client, authToken, 0)
                     while runtime > 0:
+                        await asyncio.sleep(uniform(3, 5))
+                        await self.tap(http_client, authToken, 0)
                         taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
                         if int(taps) >= 1000:
                             logger.warning(f"{self.session_name} | Invaild taps count...")
