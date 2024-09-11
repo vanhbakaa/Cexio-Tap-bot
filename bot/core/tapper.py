@@ -59,6 +59,7 @@ class Tapper:
         self.energy = 1000
         self.cexp_balance = 0
         self.multi_tap = 1
+        self.energy_limit = 1000
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
         logger.info(f"Getting data for {self.session_name}")
@@ -164,6 +165,9 @@ class Tapper:
                 data_response = json_response['data']
                 self.coin_balance = int(float(data_response['balance_USD']))
                 self.multi_tap = int(data_response['multiTapsPower'])
+                self.energy = data_response['multiTapsEnergy']
+                self.energy_limit = data_response['multiTapsEnergyLimit']
+                # print(json_response)
                 try:
                     self.multi = 10**data_response['precision_BTC']
                 except:
@@ -191,11 +195,12 @@ class Tapper:
             "authData": str(authToken),
             "platform": "android",
             "data": {
-                "tapsEnergy": str(1000-int(taps)),
+                "tapsEnergy": str(int(self.energy)-int(taps)),
                 "tapsToClaim": str(taps),
                 "tapsTs": time_unix
             }
         }
+        # print(data)
         # print(int((time()) * 1000) - time_unix)
         response = await http_client.post(api_tap, json=data)
         if response.status == 200:
@@ -558,6 +563,8 @@ class Tapper:
                         runtime -= 1
                         sleep_ = randint(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1])
                         self.energy += sleep_*3
+                        if self.energy > self.energy_limit:
+                            self.energy = self.energy_limit
                         await asyncio.sleep(sleep_)
                     await self.claim_crypto(http_client, authToken)
                     logger.info(f"{self.session_name} | resting and upgrade...")
