@@ -58,6 +58,7 @@ class Tapper:
         self.multi = 1000000
         self.energy = 1000
         self.cexp_balance = 0
+        self.multi_tap = 1
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
         logger.info(f"Getting data for {self.session_name}")
@@ -161,7 +162,8 @@ class Tapper:
             try:
                 json_response = await response.json()
                 data_response = json_response['data']
-                self.coin_balance = int(float(data_response['balance_USD']))
+                self.coin_balance = int(data_response['balance_USD'])
+                self.multi_tap = int(data_response['multiTapsPower'])
                 try:
                     self.multi = 10**data_response['precision_BTC']
                 except:
@@ -197,11 +199,12 @@ class Tapper:
         # print(int((time()) * 1000) - time_unix)
         response = await http_client.post(api_tap, json=data)
         if response.status == 200:
-            self.energy -= int(taps)
+            self.energy -= int(taps)*self.multi_tap
             json_response = await response.json()
             data_response = json_response['data']
             self.coin_balance = int(float(data_response['balance_USD']))
-            logger.info(f"{self.session_name} | Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
+            if int(taps) != 0:
+                logger.info(f"{self.session_name} | Tapped <cyan>{taps}</cyan> times | Coin balance: <cyan>{data_response['balance_USD']}</cyan>")
         else:
             json_response = await response.json()
             if "too slow" in json_response['data']['reason']:
@@ -265,7 +268,7 @@ class Tapper:
             if response.status == 200:
                 json_response = await response.json()
                 data_response = json_response['convert']
-                self.coin_balance = int(float(data_response['balance_USD']))
+                self.coin_balance = int(data_response['balance_USD'])
                 logger.success(
                     f"{self.session_name} | <green> Successfully convert <yellow>{self.btc_balance}</yellow> to <yellow>{float(self.btc_balance)*float(price)}</yellow> coin - Coin balance: <yellow>{data_response['balance_USD']}</yellow></green>")
             else:
@@ -519,13 +522,34 @@ class Tapper:
                         else:
                             await self.startTask(http_client, authToken, task['taskId'])
                             await asyncio.sleep(uniform(1,2))
+                
+                if settings.AUTO_CONVERT and self.btc_balance >= settings.MINIMUM_TO_CONVERT:
+                    await self.convertBTC(http_client, authToken)
+                    
+                if settings.AUTO_BUY_UPGRADE:
+                    self.card1 = await self.getUserCard(http_client, authToken)
+                    await self.find_potential()
+                    sorted_potential_card = dict(sorted(self.potential_card.items()))
+                        # print(sorted_potential_card)
 
+                    for card in sorted_potential_card:
+                        if self.checkDependcy(sorted_potential_card[card]['dependency']):
+                            if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
+                                check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
+                                if check:
+                                    self.potential_card.pop(card)
+                            elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
+                                break
+                        elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
+                            break
+                
                 runtime = 10
                 if settings.AUTO_TAP:
+                    await asyncio.sleep(uniform(3,6))
                     await self.tap(http_client, authToken, 0)
                     while runtime > 0:
                         taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
-                        if int(taps) > 1000:
+                        if int(taps) >= 1000:
                             logger.warning(f"{self.session_name} | Invaild taps count...")
                         elif self.energy > settings.SLEEP_BY_MIN_ENERGY:
                             await self.tap(http_client, authToken, taps)
@@ -549,26 +573,6 @@ class Tapper:
                     pool_balance = await self.checkref(http_client, authToken)
                     if float(pool_balance) > 0:
                         await self.claim_pool(http_client, authToken)
-
-                if settings.AUTO_CONVERT and self.btc_balance >= settings.MINIMUM_TO_CONVERT:
-                    await self.convertBTC(http_client, authToken)
-
-                if settings.AUTO_BUY_UPGRADE:
-                    self.card1 = await self.getUserCard(http_client, authToken)
-                    await self.find_potential()
-                    sorted_potential_card = dict(sorted(self.potential_card.items()))
-                        # print(sorted_potential_card)
-
-                    for card in sorted_potential_card:
-                        if self.checkDependcy(sorted_potential_card[card]['dependency']):
-                            if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
-                                check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
-                                if check:
-                                    self.potential_card.pop(card)
-                            elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
-                                break
-                        elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
-                            break
 
                 delay_time = randint(60, 120)
                 logger.info(f"{self.session_name} | waiting {delay_time} seconds...")
