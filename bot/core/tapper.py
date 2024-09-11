@@ -162,7 +162,7 @@ class Tapper:
             try:
                 json_response = await response.json()
                 data_response = json_response['data']
-                self.coin_balance = int(data_response['balance_USD'])
+                self.coin_balance = int(float(data_response['balance_USD']))
                 self.multi_tap = int(data_response['multiTapsPower'])
                 try:
                     self.multi = 10**data_response['precision_BTC']
@@ -173,7 +173,7 @@ class Tapper:
                     self.cexp_balance = int(cexp)
                 except:
                     cexp = 0
-                self.btc_balance = int(data_response['balance_BTC']) / self.multi
+                self.btc_balance = int(float(data_response['balance_BTC'])) / self.multi
                 logger.info(
                     f"Account name: {data_response['first_name']} - Balance: <yellow>{data_response['balance_USD']}</yellow> - Btc balance: <yellow>{self.btc_balance}</yellow> - Power: <yellow>{cexp}</yellow> CEXP")
             except Exception as e:
