@@ -123,7 +123,7 @@ class Tapper:
                 bot=peer,
                 platform='android',
                 from_bot_menu=False,
-                url="https://cexp5.cex.io",
+                url="https://cexp8.cex.io",
             ))
             auth_url = web_view.url
             # print(unquote(auth_url))
