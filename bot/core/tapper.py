@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 from datetime import datetime
 from time import time
 from urllib.parse import unquote, quote
@@ -63,7 +64,10 @@ class Tapper:
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
         logger.info(f"Getting data for {self.session_name}")
-        ref_param = settings.REF_LINK.split('=')[1]
+        if settings.REF_LINK != "":
+            ref_param = settings.REF_LINK.split('=')[1]
+        else:
+            ref_param = "1716977635264001"
         if proxy:
             proxy = Proxy.from_str(proxy)
             proxy_dict = dict(
@@ -119,7 +123,7 @@ class Tapper:
                 bot=peer,
                 platform='android',
                 from_bot_menu=False,
-                url="https://cexp2.cex.io/",
+                url="https://cexp5.cex.io",
             ))
             auth_url = web_view.url
             # print(unquote(auth_url))
@@ -158,6 +162,7 @@ class Tapper:
             "platform": "ios",
             "data": {}
         }
+        # print(http_client.headers)
         response = await http_client.post(api_profile, json=data)
         if response.status == 200:
             try:
@@ -214,6 +219,8 @@ class Tapper:
             json_response = await response.json()
             if "too slow" in json_response['data']['reason']:
                 logger.error(f'{self.session_name} | <red> Tap failed - please stop the code and open the bot in telegram then tap 1-2 times and run this code again. it should be worked!</red>')
+            elif "fast taps" in json_response['data']['reason']:
+                pass
             else:
                 print(json_response)
                 logger.error(f'{self.session_name} | <red> Tap failed - response code: {response.status}</red>')
@@ -484,6 +491,13 @@ class Tapper:
             logger.error(f"{self.session_name} | <red>Error while upgrade card {Buydata['upgradeId']} to lvl {Buydata['nextLevel']}. Response code: {response.status}</red>")
             return False
 
+    def generate_random_hex_string(self):
+        # Generate a 32-byte random string (256 bits)
+        random_bytes = secrets.token_bytes(32)
+        # Convert the bytes to a hex string
+        return random_bytes.hex()
+
+
     async def run(self, proxy: str | None) -> None:
         access_token_created_time = 0
         proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
@@ -500,6 +514,8 @@ class Tapper:
                 if time() - access_token_created_time >= token_live_time or authToken == "":
                     logger.info(f"{self.session_name} | Update auth token...")
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
+                    user_hash = self.generate_random_hex_string()
+                    http_client.headers.update({"x-request-userhash": user_hash})
                     # print(self.user_id)
                     authToken = tg_web_data
                     access_token_created_time = time()
@@ -550,9 +566,9 @@ class Tapper:
 
                 runtime = 10
                 if settings.AUTO_TAP:
+                    await asyncio.sleep(uniform(3, 5))
+                    await self.tap(http_client, authToken, 0)
                     while runtime > 0:
-                        await asyncio.sleep(uniform(3, 5))
-                        await self.tap(http_client, authToken, 0)
                         taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
                         if int(taps) >= 1000:
                             logger.warning(f"{self.session_name} | Invaild taps count...")
