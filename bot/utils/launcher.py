@@ -11,6 +11,7 @@ from bot.config import settings
 from bot.utils import logger
 from bot.core.tapper import run_tapper
 from bot.core.registrator import register_sessions
+from bot.utils.version_updater import parser
 
 
 start_text = """
@@ -19,9 +20,7 @@ start_text = """
 /  ` |__  \_/ | /  \    |__) /  \  |  
 \__, |___ / \ | \__/    |__) \__/  |  
                                      
-            BY VANHBAKA
-  JOiN TELEGRAM CHANNEL FOR MORE: 
-  https://t.me/airdrop_tool_vanh  
+            BY VANHBAKA                                                                                                       
                                                                    
 Select an action:
 
@@ -30,6 +29,13 @@ Select an action:
 """
 
 global tg_clients
+
+def get_app_version():
+    version = parser.x_appl_version("https://cexp.cex.io/static/js/main.0b92331a.js")
+    if version:
+        parser.save_version_to_file(version)
+    else:
+        logger.info("Could not find 'const g' in the content.")
 
 def get_session_names() -> list[str]:
     session_names = sorted(glob.glob("sessions/*.session"))
@@ -80,8 +86,10 @@ async def process() -> None:
     parser.add_argument("-a", "--action", type=int, help="Action to perform")
 
     logger.info(f"Detected {len(get_session_names())} sessions | {len(get_proxies())} proxies")
+    get_app_version()
 
     action = parser.parse_args().action
+
 
     if not action:
         print(start_text)
@@ -108,11 +116,14 @@ async def process() -> None:
 async def run_tasks(tg_clients: list[Client]):
     proxies = get_proxies()
     proxies_cycle = cycle(proxies) if proxies else None
+    with open("x-appl-version.txt", "r") as f:
+        version = f.read()
     tasks = [
         asyncio.create_task(
             run_tapper(
                 tg_client=tg_client,
                 proxy=next(proxies_cycle) if proxies_cycle else None,
+                app_version=str(version),
             )
         )
         for tg_client in tg_clients
