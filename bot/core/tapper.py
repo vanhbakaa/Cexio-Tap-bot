@@ -3,9 +3,9 @@ import secrets
 from datetime import datetime
 from time import time
 from urllib.parse import unquote, quote
-
 import aiohttp
 import pytz
+import traceback
 from aiocfscrape import CloudflareScraper
 from aiohttp_proxy import ProxyConnector
 from better_proxy import Proxy
@@ -15,13 +15,11 @@ from pyrogram.raw import functions
 from pyrogram.raw.functions.messages import RequestWebView
 from bot.core.agents import generate_random_user_agent
 from bot.config import settings
-
 from bot.utils import logger
 from bot.exceptions import InvalidSession
 from .headers import headers
-
 from random import randint, uniform
-import traceback
+
 
 # api endpoint
 api_profile = 'https://cexp.cex.io/api/v2/getUserInfo/'  # POST
@@ -40,9 +38,10 @@ api_getUserCard = 'https://cexp.cex.io/api/v2/getUserCards' #post
 api_buyUpgrade = 'https://cexp.cex.io/api/v2/buyUpgrade' #post
 
 class Tapper:
-    def __init__(self, tg_client: Client):
+    def __init__(self, tg_client: Client, app_version):
         self.tg_client = tg_client
         self.session_name = tg_client.name
+        self.version = app_version
         self.first_name = ''
         self.last_name = ''
         self.user_id = ''
@@ -61,6 +60,7 @@ class Tapper:
         self.cexp_balance = 0
         self.multi_tap = 1
         self.energy_limit = 1000
+
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
         logger.info(f"Getting data for {self.session_name}")
@@ -516,6 +516,8 @@ class Tapper:
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
                     user_hash = self.generate_random_hex_string()
                     http_client.headers.update({"x-request-userhash": user_hash})
+                    http_client.headers.update({'x-appl-version': self.version})
+                    # print(http_client.headers)
                     # print(self.user_id)
                     authToken = tg_web_data
                     access_token_created_time = time()
@@ -609,8 +611,8 @@ class Tapper:
                 await asyncio.sleep(delay=randint(60, 120))
 
 
-async def run_tapper(tg_client: Client, proxy: str | None):
+async def run_tapper(tg_client: Client, proxy: str | None, app_version):
     try:
-        await Tapper(tg_client=tg_client).run(proxy=proxy)
+        await Tapper(tg_client=tg_client, app_version=app_version).run(proxy=proxy)
     except InvalidSession:
         logger.error(f"{tg_client.name} | Invalid Session")
