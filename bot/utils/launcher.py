@@ -31,7 +31,7 @@ Select an action:
 global tg_clients
 
 def get_app_version():
-    version = parser.x_appl_version("https://cexp.cex.io/static/js/main.0b92331a.js")
+    version = parser.x_appl_version("https://cexp8.cex.io/static/js/main.a7314763.js")
     if version:
         parser.save_version_to_file(version)
     else:
