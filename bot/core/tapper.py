@@ -516,7 +516,7 @@ class Tapper:
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
                     user_hash = self.generate_random_hex_string()
                     http_client.headers.update({"x-request-userhash": user_hash})
-                    http_client.headers.update({'x-appl-version': self.version})
+                    http_client.headers.update({'x-appl-version': headers['x-appl-version']})
                     # print(http_client.headers)
                     # print(self.user_id)
                     authToken = tg_web_data
