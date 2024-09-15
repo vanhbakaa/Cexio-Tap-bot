@@ -558,9 +558,11 @@ class Tapper:
                     for card in sorted_potential_card:
                         if self.checkDependcy(sorted_potential_card[card]['dependency']):
                             if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
+                                logger.info(f"{self.session_name} | Attempt to upgrade {card}")
                                 check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
                                 if check:
                                     self.potential_card.pop(card)
+                                await asyncio.sleep(uniform(3,5))
                             elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
                                 break
                         elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
