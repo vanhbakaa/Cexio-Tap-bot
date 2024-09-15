@@ -12,16 +12,16 @@ from bot.utils import logger
 from bot.core.tapper import run_tapper
 from bot.core.registrator import register_sessions
 from bot.utils.version_updater import parser
-
+from bot.core.headers import headers
 
 start_text = """
 
  __   ___        __      __   __  ___ 
 /  ` |__  \_/ | /  \    |__) /  \  |  
 \__, |___ / \ | \__/    |__) \__/  |  
-                                     
+
             BY VANHBAKA                                                                                                       
-                                                                   
+
 Select an action:
 
     1. Run clicker
@@ -30,12 +30,14 @@ Select an action:
 
 global tg_clients
 
+
 def get_app_version():
     version = parser.x_appl_version("https://cexp8.cex.io/static/js/main.a7314763.js")
     if version:
         parser.save_version_to_file(version)
     else:
         logger.info("Could not find 'const g' in the content.")
+
 
 def get_session_names() -> list[str]:
     session_names = sorted(glob.glob("sessions/*.session"))
@@ -80,6 +82,15 @@ async def get_tg_clients() -> list[Client]:
 
     return tg_clients
 
+async def auto_update_version():
+    while True:
+        await asyncio.sleep(3600)
+        get_app_version()
+        with open("x-appl-version.txt", "r") as f:
+            version = f.read()
+            headers['x-appl-version'] = str(version)
+
+
 
 async def process() -> None:
     parser = argparse.ArgumentParser()
@@ -89,7 +100,6 @@ async def process() -> None:
     get_app_version()
 
     action = parser.parse_args().action
-
 
     if not action:
         print(start_text)
@@ -128,5 +138,5 @@ async def run_tasks(tg_clients: list[Client]):
         )
         for tg_client in tg_clients
     ]
-
+    tasks.append(asyncio.create_task(auto_update_version()))
     await asyncio.gather(*tasks)
