@@ -514,8 +514,7 @@ class Tapper:
                 if time() - access_token_created_time >= token_live_time or authToken == "":
                     logger.info(f"{self.session_name} | Update auth token...")
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
-                    user_hash = self.generate_random_hex_string()
-                    http_client.headers.update({"x-request-userhash": user_hash})
+                    
                     http_client.headers.update({'x-appl-version': headers['x-appl-version']})
                     # print(http_client.headers)
                     # print(self.user_id)
@@ -525,6 +524,8 @@ class Tapper:
                     await asyncio.sleep(delay=randint(10, 15))
                 logger.info(f"Session {self.first_name} {self.last_name} logged in.")
                 # print(authToken)
+                user_hash = self.generate_random_hex_string()
+                http_client.headers.update({"x-request-userhash": user_hash})
                 await self.get_user_info(http_client, authToken)
                 if self.card is None or self.task is None:
                     await self.fetch_data(http_client, authToken)
