@@ -36,6 +36,10 @@ api_claimTask = 'https://cexp.cex.io/api/v2/claimTask'  # post
 api_checkCompletedTask = 'https://cexp.cex.io/api/v2/getUserTasks' # post
 api_getUserCard = 'https://cexp.cex.io/api/v2/getUserCards' #post
 api_buyUpgrade = 'https://cexp.cex.io/api/v2/buyUpgrade' #post
+api_getSpecialOffer = 'https://cexp.cex.io/api/v2/getUserSpecialOffer' # post
+api_startSpecialOffer = 'https://cexp.cex.io/api/v2/startUserSpecialOffer' #post
+api_checkSpecialOffer = 'https://cexp.cex.io/api/v2/checkUserSpecialOffer' #post
+api_claimSpecialOffer = 'https://cexp.cex.io/api/v2/claimUserSpecialOffer' #post
 
 class Tapper:
     def __init__(self, tg_client: Client, app_version):
@@ -52,7 +56,7 @@ class Tapper:
         self.task = None
         self.card = None
         self.startedTask = []
-        self.skip = ['register_on_cex_io', 'boost_telegram', 'play_piggypiggy_tap_game', 'join_btc_garden_twitter', 'subscribe_crypto_garden_telegram', 'subscribe_telegram', 'join_cedex_tap_game', 'join_wigwam_drum_game']
+        self.skip = ['register_on_cex_io', 'boost_telegram', 'play_piggypiggy_tap_game', 'join_btc_garden_twitter', 'subscribe_crypto_garden_telegram', 'subscribe_telegram', 'join_cedex_tap_game', 'join_wigwam_drum_game', 'WatchPowerTapGuidevideo', 'joinПро100Крипта', 'joinCryptoCab', 'joinEarningSikka']
         self.card1 = None
         self.potential_card = {}
         self.multi = 1000000
@@ -60,6 +64,8 @@ class Tapper:
         self.cexp_balance = 0
         self.multi_tap = 1
         self.energy_limit = 1000
+        self.special_task = []
+        self.ready_to_check_special_task = []
 
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
@@ -193,6 +199,92 @@ class Tapper:
             logger.error(f"Error while getting user data. Response {response.status}. Try again after 30s")
             await asyncio.sleep(30)
 
+
+    async def get_user_special_task(self, http_client: aiohttp.ClientSession, authToken):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": authToken,
+            "platform": "android",
+            "data": {}
+        }
+
+        response = await http_client.post(api_getSpecialOffer, json=data)
+        if response.status == 200:
+            json_response = await response.json()
+            for task in json_response['data']:
+                if task['type'] != "social" and task['type'] != "learn_earn":
+                    continue
+                elif task['state'] == "NONE":
+                    self.special_task.append(task)
+                elif task['state'] == "ReadyToCheck":
+                    logger.info(f"{self.session_name} | Task: {task['taskId']} ready for check...")
+                    self.ready_to_check_special_task.append(task)
+        else:
+            logger.warning(f"{self.session_name} | Failed to get special tasks data. Response code: {response.status}")
+
+    async def start_special_task(self, http_client: aiohttp.ClientSession, authToken, offerId, taskName):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": authToken,
+            "platform": "android",
+            "data": {
+                "specialOfferId": str(offerId)
+            }
+        }
+
+        response = await http_client.post(api_startSpecialOffer, json=data)
+        if response.status == 200:
+            logger.info(f"{self.session_name} | <green> Successfully started special offer: {taskName}.</green>")
+            return True
+        else:
+            logger.warning(f"{self.session_name} | Failed to start special offer data. Response code: {response.status}")
+            return False
+    async def claim_special_task(self, http_client: aiohttp.ClientSession, authToken, offerId, taskName):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": authToken,
+            "platform": "android",
+            "data": {
+                "specialOfferId": str(offerId)
+            }
+        }
+        response = await http_client.post(api_claimSpecialOffer, json=data)
+        if response.status == 200:
+            logger.success(f"{self.session_name} | <green>Successfully claimed special offer: <cyan>{taskName}</cyan></green>")
+        else:
+            logger.warning(
+                f"{self.session_name} | Failed to claim special offer. Response code: {response.status}")
+            return False
+
+    async def check_special_task(self, http_client: aiohttp.ClientSession, authToken, offerId, taskName):
+        data = {
+            "devAuthData": int(self.user_id),
+            "authData": authToken,
+            "platform": "android",
+            "data": {
+                "specialOfferId": str(offerId)
+            }
+        }
+
+        response = await http_client.post(api_checkSpecialOffer, json=data)
+        if response.status == 200:
+            check = False
+            json_response = await response.json()
+            for task in json_response['data']:
+                if task['specialOfferId'] == str(offerId):
+                    if task['state'] == "ReadyToClaim":
+                        check = await self.claim_special_task(http_client, authToken, offerId, taskName)
+                        break
+                    else:
+                        logger.info(f"{self.session_name} | Task: {task['taskId']} wait for check...")
+                        break
+            if check:
+                return True
+            else:
+                return False
+        else:
+            logger.warning(f"{self.session_name} | Failed to check special offer. Response code: {response.status}")
+            return False
     async def tap(self, http_client: aiohttp.ClientSession, authToken, taps):
         time_unix = int((time()) * 1000)
         data = {
@@ -514,7 +606,7 @@ class Tapper:
                 if time() - access_token_created_time >= token_live_time or authToken == "":
                     logger.info(f"{self.session_name} | Update auth token...")
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
-                    
+
                     http_client.headers.update({'x-appl-version': headers['x-appl-version']})
                     # print(http_client.headers)
                     # print(self.user_id)
@@ -531,6 +623,21 @@ class Tapper:
                     await self.fetch_data(http_client, authToken)
                     # print(self.task)
                 if settings.AUTO_TASK:
+                    await self.get_user_special_task(http_client, authToken)
+                    if len(self.special_task) > 0:
+                        for task in self.special_task:
+                            check = await self.start_special_task(http_client,authToken,task['specialOfferId'],task['taskId'])
+                            if check:
+                                self.special_task.remove(task)
+                        await asyncio.sleep(uniform(2, 3))
+                    elif len(self.ready_to_check_special_task) > 0:
+                        for task in self.ready_to_check_special_task:
+                            check = await self.check_special_task(http_client, authToken,task['specialOfferId'], task['taskId'])
+                            if check:
+                                self.ready_to_check_special_task.remove(task)
+                            await asyncio.sleep(uniform(2,3))
+                    else:
+                        logger.info(f"{self.session_name} | No special tasks now!")
                     completed_tasks = await self.getUserTask(http_client, authToken)
                     for task in self.task:
                         #print(task)
