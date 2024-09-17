@@ -11,7 +11,7 @@ from bot.config import settings
 from bot.utils import logger
 from bot.core.tapper import run_tapper
 from bot.core.registrator import register_sessions
-from bot.utils.version_updater.parser import get_app_version
+from bot.utils.version_updater import parser as ps
 from bot.core.headers import headers
 
 start_text = """
@@ -79,7 +79,7 @@ async def get_tg_clients() -> list[Client]:
 async def auto_update_version():
     while True:
         await asyncio.sleep(3600)
-        get_app_version()
+        ps.get_app_version()
         with open("x-appl-version.txt", "r") as f:
             version = f.read()
             headers['x-appl-version'] = str(version)
@@ -91,7 +91,7 @@ async def process() -> None:
     parser.add_argument("-a", "--action", type=int, help="Action to perform")
 
     logger.info(f"Detected {len(get_session_names())} sessions | {len(get_proxies())} proxies")
-    get_app_version()
+    ps.get_app_version()
 
     action = parser.parse_args().action
 
