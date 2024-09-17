@@ -11,7 +11,7 @@ from bot.config import settings
 from bot.utils import logger
 from bot.core.tapper import run_tapper
 from bot.core.registrator import register_sessions
-from bot.utils.version_updater import parser
+from bot.utils.version_updater.parser import get_app_version
 from bot.core.headers import headers
 
 start_text = """
@@ -31,12 +31,6 @@ Select an action:
 global tg_clients
 
 
-def get_app_version():
-    version = parser.x_appl_version("https://cexp8.cex.io/static/js/main.a7314763.js")
-    if version:
-        parser.save_version_to_file(version)
-    else:
-        logger.info("Could not find 'const g' in the content.")
 
 
 def get_session_names() -> list[str]:
