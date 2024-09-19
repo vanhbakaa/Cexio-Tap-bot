@@ -606,8 +606,10 @@ class Tapper:
                 if time() - access_token_created_time >= token_live_time or authToken == "":
                     logger.info(f"{self.session_name} | Update auth token...")
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
+                    with open("x-appl-version.txt", "r") as f:
+                        version = f.read()
 
-                    http_client.headers.update({'x-appl-version': headers['x-appl-version']})
+                    http_client.headers.update({'x-appl-version': str(version)})
                     # print(http_client.headers)
                     # print(self.user_id)
                     authToken = tg_web_data
@@ -673,8 +675,6 @@ class Tapper:
                                 await asyncio.sleep(uniform(3,5))
                             elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
                                 break
-                        elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
-                            break
 
                 runtime = 10
                 if settings.AUTO_TAP:
