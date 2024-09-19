@@ -12,7 +12,6 @@ from bot.utils import logger
 from bot.core.tapper import run_tapper
 from bot.core.registrator import register_sessions
 from bot.utils.version_updater import parser as ps
-from bot.core.headers import headers
 
 start_text = """
 
@@ -80,10 +79,6 @@ async def auto_update_version():
     while True:
         await asyncio.sleep(3600)
         ps.get_app_version()
-        with open("x-appl-version.txt", "r") as f:
-            version = f.read()
-            headers['x-appl-version'] = str(version)
-
 
 
 async def process() -> None:
