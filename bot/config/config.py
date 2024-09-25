@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     AUTO_CONVERT: bool = True
     MINIMUM_TO_CONVERT: float = 0.1
     AUTO_BUY_UPGRADE: bool = True
-    WAIT_FOR_MOST_PROFITABLE_CARD: bool = True
+    WAIT_FOR_MOST_PROFITABLE_CARD: bool = False
     AUTO_TASK: bool = True
     AUTO_CLAIM_SQUAD_BONUS: bool = False
 
