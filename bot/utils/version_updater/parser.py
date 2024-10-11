@@ -25,12 +25,12 @@ def x_appl_version(url):
         response = requests.get(url)
         response.raise_for_status()
         content = response.text
-        match = re.search(r'const\s+g\s*=\s*"([^"]*)"', content)
+        match = re.search(r'const\s+h\s*=\s*"([^"]*)"', content)
 
         if match:
             return match.group(1)
         else:
-            logger.info("Could not find 'const g' in the content.")
+            logger.info("Could not find 'const h' in the content.")
             return None
     except requests.RequestException as e:
         logger.warning(f"Error fetching the JS file: {e}")
@@ -64,7 +64,7 @@ def get_app_version():
                 save_version_to_file(result)
                 break
         else:
-            logger.warning("Could not find 'const g' in any of the JS files.")
+            logger.warning("Could not find 'const h' in any of the JS files.")
     else:
         logger.info("Could not find any main.js format. Dumping page content for inspection:")
         try:
