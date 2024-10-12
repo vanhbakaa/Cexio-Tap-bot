@@ -25,7 +25,7 @@
 |----------------------------|:-------------------------------------------------------------------------------------------------------------:|
 | **API_ID / API_HASH**      | Platform data from which to run the Telegram session (default - android)                                      |
 | **REF_LINK**               | auto register with your ref link (default: my ref link)                                                       |
-| **AUTO_TAP**               | Automatically tapping (e.g. True) IMPORTANT please dont open app while you are running bot with this option and just turn on this option if your wifi is good |                                
+| **AUTO_TAP**               | Automatically tapping (e.g. True) IMPORTANT please dont open app while you are running bot with this option   |                                
 | **RANDOM_TAPS_COUNT**      | How many taps will be clicked (e.g. [25, 75])                                                                 |
 | **SLEEP_BETWEEN_TAPS**     | Random delay between taps (e.g. [25, 35])                                                                     |
 | **AUTO_CONVERT**           | Auto convert BTC balance to coin (e.g. True)                                                                  |
