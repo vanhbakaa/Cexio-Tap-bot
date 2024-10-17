@@ -108,7 +108,7 @@ class Tapper:
                             functions.messages.StartBot(
                                 bot=peer,
                                 peer=peer,
-                                start_param=ref_param,
+                                start_param=ref_param[0],
                                 random_id=randint(1, 9999999),
                             )
                         )
@@ -134,6 +134,7 @@ class Tapper:
                 platform='android',
                 from_bot_menu=False,
                 url="https://app.cexptap.com",
+                start_param=ref_param[0]
             ))
             auth_url = web_view.url
             # print(unquote(auth_url))
