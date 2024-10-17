@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     API_ID: int
     API_HASH: str
 
-    REF_LINK: str = "https://t.me/cexio_tap_bot?start=1716977635264001"
+    REF_LINK: str = "https://t.me/cexio_tap_bot?start=1729165832651896"
 
     AUTO_TAP: bool = True
     RANDOM_TAPS_COUNT: list = [25, 75]
