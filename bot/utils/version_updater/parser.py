@@ -58,7 +58,7 @@ def get_app_version():
     if main_js_formats:
         for format in main_js_formats:
             logger.info(f"Trying format: {format}")
-            full_url = f"https://cexp.cex.io{format}"
+            full_url = f"https://app.cexptap.com{format}"
             result = x_appl_version(full_url)
             if result:
                 save_version_to_file(result)
