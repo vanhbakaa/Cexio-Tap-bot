@@ -52,7 +52,7 @@ def save_version_to_file(version, filename="x-appl-version.txt"):
         logger.info(f"Version updated to {version} and saved to {filename}")
 
 def get_app_version():
-    base_url = "https://cexp.cex.io/"
+    base_url = "https://app.cexptap.com"
     main_js_formats = get_main_js_format(base_url)
 
     if main_js_formats:
