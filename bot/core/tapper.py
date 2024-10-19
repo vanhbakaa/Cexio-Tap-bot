@@ -1,6 +1,7 @@
 import asyncio
 import random
 import secrets
+import sys
 from datetime import datetime
 from time import time
 from urllib.parse import unquote, quote
@@ -20,6 +21,7 @@ from bot.utils import logger
 from bot.exceptions import InvalidSession
 from .headers import headers
 from random import randint, uniform
+from bot.utils.version_updater import parser as ps
 
 
 # api endpoint
@@ -606,6 +608,9 @@ class Tapper:
             try:
                 if time() - access_token_created_time >= token_live_time or authToken == "":
                     logger.info(f"{self.session_name} | Update auth token...")
+                    if ps.check_base_url() is False:
+                        sys.exit(
+                            "Detected api change! Stoped the bot for safety. Contact me here to update the bot: https://t.me/vanhbakaaa")
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
                     with open("x-appl-version.txt", "r") as f:
                         version = f.read()
