@@ -2,6 +2,7 @@ import os
 import glob
 import asyncio
 import argparse
+import sys
 from itertools import cycle
 
 from pyrogram import Client
@@ -87,6 +88,8 @@ async def process() -> None:
 
     logger.info(f"Detected {len(get_session_names())} sessions | {len(get_proxies())} proxies")
     ps.get_app_version()
+    if ps.check_base_url() is False:
+        sys.exit("Detected api change! Stoped the bot for safety. Contact me here to update the bot: https://t.me/vanhbakaaa")
 
     action = parser.parse_args().action
 
