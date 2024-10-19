@@ -3,6 +3,7 @@ import re
 import os
 from bot.utils import logger
 
+baseUrl = "https://app.cexptap.com/api"
 
 def get_main_js_format(base_url):
     try:
@@ -19,18 +20,36 @@ def get_main_js_format(base_url):
         logger.warning(f"Error fetching the base URL: {e}")
         return None
 
+def get_base_api(url):
+    try:
+        logger.info("Checking for changes in api...")
+        response = requests.get(url)
+        response.raise_for_status()
+        content = response.text
+        match = re.search(r'baseUrl\s*:\s*["\'](.*?)["\']', content)
+
+        if match:
+            return match.group(1)
+        else:
+            logger.info("Could not find 'baseUrl' in the content.")
+            return None
+    except requests.RequestException as e:
+        logger.warning(f"Error fetching the JS file: {e}")
+        return None
+
 
 def x_appl_version(url):
     try:
         response = requests.get(url)
         response.raise_for_status()
         content = response.text
-        match = re.search(r'const\s+h\s*=\s*"([^"]*)"', content)
+        # print(response.text)
+        match = re.search(r'const\s+C\s*=\s*"([^"]*)"', content)
 
         if match:
             return match.group(1)
         else:
-            logger.info("Could not find 'const h' in the content.")
+            logger.info("Could not find 'const C' in the content.")
             return None
     except requests.RequestException as e:
         logger.warning(f"Error fetching the JS file: {e}")
@@ -50,6 +69,34 @@ def save_version_to_file(version, filename="x-appl-version.txt"):
     with open(filename, 'w') as file:
         file.write(version)
         logger.info(f"Version updated to {version} and saved to {filename}")
+
+def check_base_url():
+    base_url = "https://app.cexptap.com"
+    main_js_formats = get_main_js_format(base_url)
+
+    if main_js_formats:
+        for format in main_js_formats:
+            logger.info(f"Trying format: {format}")
+            full_url = f"https://app.cexptap.com{format}"
+            result = get_base_api(full_url)
+            # print(f"{result} | {baseUrl}")
+            if str(result) == baseUrl:
+                logger.success("<green>No change in api!</green>")
+                return True
+            return False
+        else:
+            logger.warning("Could not find 'const h' in any of the JS files.")
+            return False
+    else:
+        logger.info("Could not find any main.js format. Dumping page content for inspection:")
+        try:
+            response = requests.get(base_url)
+            print(response.text[:1000])  # Print first 1000 characters of the page
+            return False
+        except requests.RequestException as e:
+            logger.warning(f"Error fetching the base URL for content dump: {e}")
+            return False
+
 
 def get_app_version():
     base_url = "https://app.cexptap.com"
