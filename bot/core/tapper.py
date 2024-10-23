@@ -427,7 +427,11 @@ class Tapper:
         if response.status == 200:
             json_response = await response.json(content_type=None)
             # print(json_response)
-            self.task = json_response['tasksConfig']
+            try:
+                self.task = json_response['tasksConfig']
+            except:
+                self.task = []
+            
             self.card = json_response['upgradeCardsConfig']
         else:
             logger.error(f"{self.session_name} | <red>Error code {response.status} While trying to get data</red>")
