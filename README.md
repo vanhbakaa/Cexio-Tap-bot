@@ -33,6 +33,8 @@
 | **AUTO_BUY_UPGRADE**       | Auto upgrade the most profitable card (eg. True)                                                              |
 | **AUTO_TASK**              | Auto tasks (one time) ((eg. True))                                                                            |
 | **AUTO_CLAIM_SQUAD_BONUS** | Auto claim bonus from ref (one time) ((eg. False))                                                            |
+| **AUTO_CLAIM_SQUAD_BONUS** | Auto claim bonus from ref (one time) ((eg. False))                                                            |
+| **ADVANCED_ANTI_DETECTION** | More protection for your account (eg. True))                                                            |
 | **USE_PROXY_FROM_FILE**    | Whether to use a proxy from the bot/config/proxies.txt file (True / False)                                    |
 
 
