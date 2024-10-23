@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     AUTO_TASK: bool = True
     AUTO_CLAIM_SQUAD_BONUS: bool = False
 
+    ADVANCED_ANTI_DETECTION: bool = True
+
     USE_PROXY_FROM_FILE: bool = False
 
 
