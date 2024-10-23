@@ -1,9 +1,35 @@
 import requests
 import re
 import os
+
+from bot.config import settings
 from bot.utils import logger
 
 baseUrl = "https://app.cexptap.com/api"
+all_api = [
+    "getUserInfo",
+    "convert",
+    "claimCrypto",
+    "claimMultiTaps",
+    "getGameConfig",
+    "getConvertData",
+    "claimFromChildren",
+    "getChildren",
+    "startTask",
+    "checkTask",
+    "claimTask",
+    "getUserTasks",
+    "getUserCards",
+    "buyUpgrade",
+    "getUserSpecialOffer",
+    "startUserSpecialOffer",
+    "checkUserSpecialOffer",
+    "claimUserSpecialOffer",
+    "passOnboarding"
+]
+
+pattern = r'i\s*\+\s*["\'](.*?)["\']'
+
 
 def get_main_js_format(base_url):
     try:
@@ -27,6 +53,13 @@ def get_base_api(url):
         response.raise_for_status()
         content = response.text
         match = re.search(r'baseUrl\s*:\s*["\'](.*?)["\']', content)
+        matches = re.findall(pattern, content)
+
+        # print(matches)
+
+        for url in matches:
+            if url not in matches:
+                return None
 
         if match:
             return match.group(1)
@@ -75,6 +108,15 @@ def check_base_url():
     main_js_formats = get_main_js_format(base_url)
 
     if main_js_formats:
+        if settings.ADVANCED_ANTI_DETECTION:
+            r = requests.get("https://raw.githubusercontent.com/vanhbakaa/Cexio-Tap-bot/refs/heads/main/cgi")
+            js_ver = r.text.strip()
+            for js in main_js_formats:
+                if js_ver in js:
+                    logger.success(f"<green>No change in js file: {js_ver}</green>")
+                    return True
+            return False
+
         for format in main_js_formats:
             logger.info(f"Trying format: {format}")
             full_url = f"https://app.cexptap.com{format}"
@@ -87,6 +129,7 @@ def check_base_url():
         else:
             logger.warning("Could not find 'const h' in any of the JS files.")
             return False
+
     else:
         logger.info("Could not find any main.js format. Dumping page content for inspection:")
         try:
