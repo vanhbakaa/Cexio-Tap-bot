@@ -88,8 +88,14 @@ async def process() -> None:
 
     logger.info(f"Detected {len(get_session_names())} sessions | {len(get_proxies())} proxies")
     ps.get_app_version()
+
     if ps.check_base_url() is False:
-        sys.exit("Detected api change! Stoped the bot for safety. Contact me here to update the bot: https://t.me/vanhbakaaa")
+        if settings.ADVANCED_ANTI_DETECTION:
+            sys.exit("Detected index js file change. Contact me to check if it's safe to continue: https://t.me/vanhbakaaa")
+        else:
+            sys.exit(
+                "Detected api change! Stoped the bot for safety. Contact me here to update the bot: https://t.me/vanhbakaaa")
+
 
     action = parser.parse_args().action
 
