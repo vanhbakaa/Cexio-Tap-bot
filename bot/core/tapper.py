@@ -609,125 +609,131 @@ class Tapper:
         authToken = ""
         token_live_time = randint(3500, 3600)
         while True:
-            try:
-                if time() - access_token_created_time >= token_live_time or authToken == "":
-                    logger.info(f"{self.session_name} | Update auth token...")
-                    tg_web_data = await self.get_tg_web_data(proxy=proxy)
-                    with open("x-appl-version.txt", "r") as f:
-                        version = f.read()
-
-                    http_client.headers.update({'x-appl-version': str(version)})
-                    # print(http_client.headers)
-                    # print(self.user_id)
-                    authToken = tg_web_data
-                    access_token_created_time = time()
-                    token_live_time = randint(3500, 3600)
-                    await asyncio.sleep(delay=randint(10, 15))
-
-                if ps.check_base_url() is False:
-                    if settings.ADVANCED_ANTI_DETECTION:
-                        sys.exit(
-                            "Detected index js file change. Contact me to check if it's safe to continue: https://t.me/vanhbakaaa")
-                    else:
-                        sys.exit(
-                            "Detected api change! Stoped the bot for safety. Contact me here to update the bot: https://t.me/vanhbakaaa")
-
-                logger.info(f"Session {self.first_name} {self.last_name} logged in.")
-                # print(authToken)
-                user_hash = self.hash
-                http_client.headers.update({"x-request-userhash": user_hash})
-                await self.get_user_info(http_client, authToken)
-                if self.card is None or self.task is None:
-                    await self.fetch_data(http_client, authToken)
-                    # print(self.task)
-                if settings.AUTO_TASK:
-                    await self.get_user_special_task(http_client, authToken)
-                    if len(self.special_task) > 0:
-                        for task in self.special_task:
-                            check = await self.start_special_task(http_client,authToken,task['specialOfferId'],task['taskId'])
-                            if check:
-                                self.special_task.remove(task)
-                        await asyncio.sleep(uniform(2, 3))
-                    elif len(self.ready_to_check_special_task) > 0:
-                        for task in self.ready_to_check_special_task:
-                            check = await self.check_special_task(http_client, authToken,task['specialOfferId'], task['taskId'])
-                            if check:
-                                self.ready_to_check_special_task.remove(task)
-                            await asyncio.sleep(uniform(2,3))
-                    else:
-                        logger.info(f"{self.session_name} | No special tasks now!")
-                    completed_tasks = await self.getUserTask(http_client, authToken)
-                    for task in self.task:
-                        #print(task)
-                        if task['taskId'] in self.skip:
-                            continue
-                        elif task['taskId'] in completed_tasks:
-                            continue
-                        elif task['type'] != "social" and task['type'] != "learn_earn":
-                            continue
-                        elif task['taskId'] in self.startedTask:
-                            await self.checkTask(http_client, authToken, task['taskId'])
-                            await asyncio.sleep(uniform(1, 2))
-                        else:
-                            await self.startTask(http_client, authToken, task['taskId'])
-                            await asyncio.sleep(uniform(1,2))
-
-                if settings.AUTO_CONVERT and self.btc_balance >= settings.MINIMUM_TO_CONVERT:
-                    await self.convertBTC(http_client, authToken)
-
-                if settings.AUTO_BUY_UPGRADE:
-                    self.card1 = await self.getUserCard(http_client, authToken)
-                    await self.find_potential()
-                    sorted_potential_card = dict(sorted(self.potential_card.items()))
-                        # print(sorted_potential_card)
-
-                    for card in sorted_potential_card:
-                        if self.checkDependcy(sorted_potential_card[card]['dependency']):
-                            if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
-                                logger.info(f"{self.session_name} | Attempt to upgrade {card}")
-                                check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
-                                if check:
-                                    self.potential_card.pop(card)
-                                await asyncio.sleep(uniform(3,5))
-                            elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
-                                break
-
-                runtime = 10
-                if settings.AUTO_TAP:
-                    await asyncio.sleep(uniform(3, 5))
-                    await self.tap(http_client, authToken, 0)
-                    while runtime > 0:
-                        taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
-                        if int(taps) >= 1000:
-                            logger.warning(f"{self.session_name} | Invaild taps count...")
-                        elif self.energy > settings.SLEEP_BY_MIN_ENERGY:
-                            await self.tap(http_client, authToken, taps)
-                        else:
-                            logger.info(f"Minimum energy reached: {self.energy}")
-                        runtime -= 1
-                        sleep_ = randint(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1])
-                        self.energy += sleep_*3
-                        if self.energy > self.energy_limit:
-                            self.energy = self.energy_limit
-                        await asyncio.sleep(sleep_)
-                    await self.claim_crypto(http_client, authToken)
-                    logger.info(f"{self.session_name} | resting and upgrade...")
+            can_run = True
+            if ps.check_base_url() is False:
+                can_run = False
+                if settings.ADVANCED_ANTI_DETECTION:
+                    logger.warning(
+                        "<yellow>Detected index js file change. Contact me to check if it's safe to continue: https://t.me/vanhbakaaa</yellow>")
                 else:
-                    if self.cexp_balance > 0:
-                        await self.claim_crypto(http_client, authToken)
+                    logger.warning(
+                        "<yellow>Detected api change! Stoped the bot for safety. Contact me here to update the bot: https://t.me/vanhbakaaa</yellow>")
+
+            try:
+                if can_run:
+                    if time() - access_token_created_time >= token_live_time or authToken == "":
+                        logger.info(f"{self.session_name} | Update auth token...")
+                        tg_web_data = await self.get_tg_web_data(proxy=proxy)
+                        with open("x-appl-version.txt", "r") as f:
+                            version = f.read()
+
+                        http_client.headers.update({'x-appl-version': str(version)})
+                        # print(http_client.headers)
+                        # print(self.user_id)
+                        authToken = tg_web_data
+                        access_token_created_time = time()
+                        token_live_time = randint(3500, 3600)
+                        await asyncio.sleep(delay=randint(10, 15))
+
+
+                    logger.info(f"Session {self.first_name} {self.last_name} logged in.")
+                    # print(authToken)
+                    user_hash = self.hash
+                    http_client.headers.update({"x-request-userhash": user_hash})
+                    await self.get_user_info(http_client, authToken)
+                    if self.card is None or self.task is None:
+                        await self.fetch_data(http_client, authToken)
+                        # print(self.task)
+                    if settings.AUTO_TASK:
+                        await self.get_user_special_task(http_client, authToken)
+                        if len(self.special_task) > 0:
+                            for task in self.special_task:
+                                check = await self.start_special_task(http_client,authToken,task['specialOfferId'],task['taskId'])
+                                if check:
+                                    self.special_task.remove(task)
+                            await asyncio.sleep(uniform(2, 3))
+                        elif len(self.ready_to_check_special_task) > 0:
+                            for task in self.ready_to_check_special_task:
+                                check = await self.check_special_task(http_client, authToken,task['specialOfferId'], task['taskId'])
+                                if check:
+                                    self.ready_to_check_special_task.remove(task)
+                                await asyncio.sleep(uniform(2,3))
+                        else:
+                            logger.info(f"{self.session_name} | No special tasks now!")
+                        completed_tasks = await self.getUserTask(http_client, authToken)
+                        for task in self.task:
+                            #print(task)
+                            if task['taskId'] in self.skip:
+                                continue
+                            elif task['taskId'] in completed_tasks:
+                                continue
+                            elif task['type'] != "social" and task['type'] != "learn_earn":
+                                continue
+                            elif task['taskId'] in self.startedTask:
+                                await self.checkTask(http_client, authToken, task['taskId'])
+                                await asyncio.sleep(uniform(1, 2))
+                            else:
+                                await self.startTask(http_client, authToken, task['taskId'])
+                                await asyncio.sleep(uniform(1,2))
+
+                    if settings.AUTO_CONVERT and self.btc_balance >= settings.MINIMUM_TO_CONVERT:
+                        await self.convertBTC(http_client, authToken)
+
+                    if settings.AUTO_BUY_UPGRADE:
+                        self.card1 = await self.getUserCard(http_client, authToken)
+                        await self.find_potential()
+                        sorted_potential_card = dict(sorted(self.potential_card.items()))
+                            # print(sorted_potential_card)
+
+                        for card in sorted_potential_card:
+                            if self.checkDependcy(sorted_potential_card[card]['dependency']):
+                                if int(sorted_potential_card[card]['cost']) <= int(round(float(self.coin_balance))):
+                                    logger.info(f"{self.session_name} | Attempt to upgrade {card}")
+                                    check = await self.buyUpgrade(http_client, authToken, sorted_potential_card[card])
+                                    if check:
+                                        self.potential_card.pop(card)
+                                    await asyncio.sleep(uniform(3,5))
+                                elif settings.WAIT_FOR_MOST_PROFITABLE_CARD:
+                                    break
+
+                    runtime = 10
+                    if settings.AUTO_TAP:
+                        await asyncio.sleep(uniform(3, 5))
+                        await self.tap(http_client, authToken, 0)
                         while runtime > 0:
+                            taps = str(randint(settings.RANDOM_TAPS_COUNT[0], settings.RANDOM_TAPS_COUNT[1]))
+                            if int(taps) >= 1000:
+                                logger.warning(f"{self.session_name} | Invaild taps count...")
+                            elif self.energy > settings.SLEEP_BY_MIN_ENERGY:
+                                await self.tap(http_client, authToken, taps)
+                            else:
+                                logger.info(f"Minimum energy reached: {self.energy}")
                             runtime -= 1
-                            await asyncio.sleep(uniform(15, 25))
+                            sleep_ = randint(settings.SLEEP_BETWEEN_TAPS[0], settings.SLEEP_BETWEEN_TAPS[1])
+                            self.energy += sleep_*3
+                            if self.energy > self.energy_limit:
+                                self.energy = self.energy_limit
+                            await asyncio.sleep(sleep_)
+                        await self.claim_crypto(http_client, authToken)
                         logger.info(f"{self.session_name} | resting and upgrade...")
+                    else:
+                        if self.cexp_balance > 0:
+                            await self.claim_crypto(http_client, authToken)
+                            while runtime > 0:
+                                runtime -= 1
+                                await asyncio.sleep(uniform(15, 25))
+                            logger.info(f"{self.session_name} | resting and upgrade...")
 
-                if settings.AUTO_CLAIM_SQUAD_BONUS:
-                    pool_balance = await self.checkref(http_client, authToken)
-                    if float(pool_balance) > 0:
-                        await self.claim_pool(http_client, authToken)
+                    if settings.AUTO_CLAIM_SQUAD_BONUS:
+                        pool_balance = await self.checkref(http_client, authToken)
+                        if float(pool_balance) > 0:
+                            await self.claim_pool(http_client, authToken)
 
-                delay_time = randint(60, 120)
-                logger.info(f"{self.session_name} | waiting {delay_time} seconds...")
-                await asyncio.sleep(delay=delay_time)
+                    delay_time = randint(60, 120)
+                    logger.info(f"{self.session_name} | waiting {delay_time} seconds...")
+                    await asyncio.sleep(delay=delay_time)
+                else:
+                    await asyncio.sleep(60)
             except InvalidSession as error:
                 raise error
 
