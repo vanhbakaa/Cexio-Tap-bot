@@ -77,7 +77,7 @@ def x_appl_version(url):
         response.raise_for_status()
         content = response.text
         # print(response.text)
-        match = re.search(r'const\s+C\s*=\s*"([^"]*)"', content)
+        match = re.search(r'const\s+E\s*=\s*"([^"]*)"', content)
 
         if match:
             return match.group(1)
